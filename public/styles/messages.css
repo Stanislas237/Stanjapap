@@ -9,6 +9,14 @@ body {
     height: 100vh;
     background-color: #e6e9ef;
 }
+body#left{
+    --left: flex;
+    --right: none;
+}
+body#right{
+    --left: none;
+    --right: flex;
+}
 .sidebar {
     width: 30%;
     background-color: #0033a0;
@@ -169,9 +177,11 @@ hr+p{
 }
 @media (max-width: 768px) {
     .sidebar {
-        display: none;
+        width: 100%;
+        display: var(--left);
     }
     .chat-container {
         width: 100%;
+        display: var(--right);
     }
 }

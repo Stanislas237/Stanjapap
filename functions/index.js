@@ -152,13 +152,14 @@ exports.getFriends = onRequest(async (req, res) => {
     try {
         const messagesSnapshot = await db.collection("messages").where("senderMail", "==", email).orderBy("timestamp", "desc").get();
         const receivedSnapshot = await db.collection("messages").where("receiverMail", "==", email).orderBy("timestamp", "desc").get();
-        let conversations = {};
+        let conversations = {}, friends = {};
 
         // Fonction pour ajouter un message à une conversation
-        const addMessageToConversation = (msg, isUnread) => {
+        const addMessageToConversation = async (msg, isUnread) => {
             const otherUser = msg.senderMail === email ? msg.receiverMail : msg.senderMail;
             if (!conversations[otherUser]) {
                 conversations[otherUser] = { messages: [], lastMessage: msg.timestamp, unreadCount: 0 };
+                friends[otherUser] = (await db.collection("users").doc(otherUser).get()).data();
             }
             conversations[otherUser].messages.push(msg);
             conversations[otherUser].lastMessage = msg.timestamp;
@@ -183,7 +184,7 @@ exports.getFriends = onRequest(async (req, res) => {
         .sort((a, b) => b[1].lastMessage - a[1].lastMessage)
         .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {});
 
-        return res.status(200).json({ "conversations": sortedConversations });
+        return res.status(200).json({ "conversations": sortedConversations, "friends": friends });
     } catch (error) {
         console.error("Error fetching messages:", error);
         return res.status(500).json({ error: "Internal Server Error" });
