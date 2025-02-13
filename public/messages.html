@@ -44,19 +44,34 @@
         </div>
     </div>
     <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, collection, query, where, getDocs, updateDoc, orderBy, onSnapshot, Timestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-        const db = getFirestore();
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyDwRreHnfABpGF2x6tN4wHe6VZUE_nRun4",
+            authDomain: "stanjapap.firebaseapp.com",
+            databaseURL: "https://stanjapap-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "stanjapap",
+            storageBucket: "stanjapap.firebasestorage.app",
+            appId: "1:143091903095:web:bb74bfa8ca7d41120a7472"
+        };
+            
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
 
+        const user = JSON.parse(localStorage.getItem("user"));
         const request = await fetch("https://getfriends-b2lv2k7uwq-uc.a.run.app", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ "email": JSON.parse(localStorage.getItem("user")).email })
+            headers: { 
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${user.token}`
+            },
+            body: JSON.stringify({ "email": user.email })
         });
         const response = await request.json();
 
         if (request.status === 200){
             localStorage.setItem("conversations", JSON.stringify(response.conversations));
-            localStorage.setItem("friends", JSON.stringify(response.friends));
             renderContactList();
             listenForNewMessages(JSON.parse(localStorage.getItem("user")).email);
         }
@@ -78,7 +93,8 @@
                 });
 
                 let conversations = JSON.parse(localStorage.getItem("conversations")) ?? {};
-                conversations[contact]?.unreadCount = 0;
+                if (conversations[contact])
+                    conversations[contact].unreadCount = 0;
                 localStorage.setItem("conversations", JSON.stringify(conversations));
                 renderContactList();
             } catch (error) {
@@ -98,8 +114,7 @@
                     c.style.setProperty("--unread", `"${conversations[contact].unreadCount}"`);
                 c.classList.add("contact");
 
-                const contactData = JSON.parse(localStorage.getItem("friends"))[contact];
-                c.innerHTML = `<span><img src="${contactData.ppUrl}" alt="${contactData.pseudo}"> ${JSON.parse(localStorage.getItem("user"))["aliases"][contact] ?? contactData.pseudo}</span>`;
+                c.innerHTML = `<span><img src="${conversations[contact].ppUrl}" alt="${conversations[contact].pseudo}"> ${JSON.parse(localStorage.getItem("user"))["aliases"][contact] ?? conversations[contact].pseudo}</span>`;
                 contactList.appendChild(c);
             }
         }
@@ -128,6 +143,7 @@
 
                         // Si la conversation est actuellement ouverte, afficher immédiatement le message
                         if (document.querySelector(".chat-container").getAttribute("data-active") === sender) {
+                            console.log("opening chat for " + sender);
                             openChat(sender);
                         }
                     }
@@ -136,10 +152,8 @@
         }
 
         function openChat(contact) {
-            const contactData = JSON.parse(localStorage.getItem("friends"))[contact];
-
             const header = document.querySelector("#opened");
-            header.innerHTML = `<button id="back">❎</button><img src="${contactData.ppUrl}" alt="${contactData.pseudo}"> ${JSON.parse(localStorage.getItem("user"))["aliases"][contact] ?? contactData.pseudo}`;
+            header.innerHTML = `<button id="back">❎</button><img src="${conversations[contact].ppUrl}" alt="${conversations[contact].pseudo}"> ${JSON.parse(localStorage.getItem("user"))["aliases"][contact] ?? conversations[contact].pseudo}`;
 
             document.querySelector("#back").addEventListener("click", ()=>{
                 document.querySelector(".chat-container").setAttribute("data-active", "");
@@ -165,6 +179,7 @@
                 const messageElement = document.createElement("div");
                 messageElement.classList.add("message", msg.receiverMail === contact ? "sent" : "received");
                 messageElement.style.setProperty("--time", `"${msgHour}"`);
+                messageElement.innerHTML = msg.content;
                 document.querySelector(".chat-container").setAttribute("data-active", contact);
                 messagesZone.appendChild(messageElement);
             });

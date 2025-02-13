@@ -14,15 +14,15 @@ function generateToken() {
     return token;
 }
 async function checkAuth(req, email) {
-    const authHeader = req.headers.authorization;
-    
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-        return false;
-    }
-
-    const idToken = authHeader.split("Bearer ")[1];
-
     try {
+        const authHeader = req.headers.authorization;
+        
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
+            return false;
+        }
+    
+        const idToken = authHeader.split("Bearer ")[1];
+    
         const userDoc = await db.collection("users").doc(email).get();
         if (!userDoc.exists) {
             return false;
@@ -60,6 +60,7 @@ exports.addUser = onRequest(async (req, res) => {
             name,
             pseudo,
             aliases: [],
+            ppUrl: "https://pngtree.com/freepng/unknown-user-question-mark-about_8217878.html",
             registerDate: admin.firestore.FieldValue.serverTimestamp()
         });
         
@@ -135,7 +136,7 @@ exports.getUser = onRequest(async (req, res) => {
 exports.getFriends = onRequest(async (req, res) => {
     res.set("Access-Control-Allow-Origin", "https://stanjapap.web.app");
     res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
-    res.set("Access-Control-Allow-Headers", "Content-Type");
+    res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
     if (req.method === "OPTIONS")
         return res.status(204).send("");
@@ -146,45 +147,45 @@ exports.getFriends = onRequest(async (req, res) => {
     if (!email)
         return res.status(400).json({ error: "Email is required" });
 
-    if (!checkAuth(req, email))
+    if (!await checkAuth(req, email))
         return res.status(401).json({ error: "Unauthenticated" });
 
     try {
         const messagesSnapshot = await db.collection("messages").where("senderMail", "==", email).orderBy("timestamp", "desc").get();
         const receivedSnapshot = await db.collection("messages").where("receiverMail", "==", email).orderBy("timestamp", "desc").get();
-        let conversations = {}, friends = {};
+        let conversations = {};
+
+        const alreadyExists = (elt, list) =>{
+            for (var e of list)
+                if (JSON.stringify(elt) === JSON.stringify(e))
+                    return true;
+            return false;
+        }
 
         // Fonction pour ajouter un message à une conversation
         const addMessageToConversation = async (msg, isUnread) => {
             const otherUser = msg.senderMail === email ? msg.receiverMail : msg.senderMail;
             if (!conversations[otherUser]) {
-                conversations[otherUser] = { messages: [], lastMessage: msg.timestamp, unreadCount: 0 };
-                friends[otherUser] = (await db.collection("users").doc(otherUser).get()).data();
+                const user = await db.collection("users").doc(otherUser).get();
+                conversations[otherUser] = { messages: [], lastMessage: msg.timestamp, unreadCount: 0, ppUrl: user.data().ppUrl, pseudo: user.data().pseudo };
             }
-            conversations[otherUser].messages.push(msg);
-            conversations[otherUser].lastMessage = msg.timestamp;
-
-            if (isUnread) {
-                conversations[otherUser].unreadCount++;
+            if (!alreadyExists(msg, conversations[otherUser].messages)){
+                conversations[otherUser].messages.push(msg);
+                conversations[otherUser].lastMessage = msg.timestamp;    
+                if (isUnread) {
+                    conversations[otherUser].unreadCount++;
+                }
             }
         };
 
         // Parcourir les messages envoyés
-        messagesSnapshot.forEach(doc => {
-            addMessageToConversation(doc.data(), false);
-        });
-
+        for (const doc of messagesSnapshot.docs)
+            await addMessageToConversation(doc.data(), false);
         // Parcourir les messages reçus
-        receivedSnapshot.forEach(doc => {
-            addMessageToConversation(doc.data(), !doc.data().read);
-        });
+        for (const doc of receivedSnapshot.docs)
+            await addMessageToConversation(doc.data(), !doc.data().read);
 
-        // Trier les conversations par date du dernier message
-        let sortedConversations = Object.entries(conversations)
-        .sort((a, b) => b[1].lastMessage - a[1].lastMessage)
-        .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {});
-
-        return res.status(200).json({ "conversations": sortedConversations, "friends": friends });
+        return res.status(200).json({ "conversations": conversations});
     } catch (error) {
         console.error("Error fetching messages:", error);
         return res.status(500).json({ error: "Internal Server Error" });
