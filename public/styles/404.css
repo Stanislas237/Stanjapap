@@ -1,0 +1,45 @@
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: #fff;
+    color: #0033cc;
+    transition: all 0.3s ease;
+}
+.container {
+    text-align: center;
+    padding: 20px;
+    border: 2px solid #0033cc;
+    border-radius: 10px;
+    max-width: 600px;
+}
+
+.error-title {
+    font-size: 5rem;
+    color: #081d5a;
+    font-weight: bold;
+}
+
+.error-description {
+    font-size: 1.2rem;
+    margin: 20px 0;
+}
+
+.home-link {
+    text-decoration: none;
+    color: #234ece;
+    font-size: 1.2rem;
+    font-weight: bold;
+    padding: 10px 20px;
+    border: 2px solid #081d5a;
+    border-radius: 5px;
+    transition: background-color 0.3s ease;
+}
+
+.home-link:hover {
+    background-color: #081d5a;
+    color: #fff;
+}

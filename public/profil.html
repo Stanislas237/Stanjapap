@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mon profil</title>
+    <link rel="stylesheet" href="styles/profil.css">
+</head>
+<body>
+    <div class="profile-container">
+        <div class="profile-pic">
+            <img id="profileImage" src="https://via.placeholder.com/100" alt="Profile Picture">
+            <label class="edit-pic">
+                ✎
+                <input type="file" id="imageUpload" accept="image/*">
+            </label>
+        </div>
+        <div class="field">
+            <label>Pseudo :</label>
+            <div class="editable">
+                <input type="text" id="pseudo" value="Utilisateur" readonly>
+                <span class="edit-icon">✎</span>
+            </div>
+        </div>
+        <div class="field">
+            <label>Actu :</label>
+            <div class="editable">
+                <textarea id="actu" rows="2" readonly>Disponible</textarea>
+                <span class="edit-icon">✎</span>
+            </div>
+        </div>
+        <div class="field">
+            <label>Email :</label>
+            <input type="email" id="email" value="user@example.com" readonly>
+            <div class="toggle">
+                <span>Afficher mon email</span>
+                <input type="checkbox" id="show-email" checked>
+            </div>
+        </div>
+        <div class="buttons">
+            <button class="save-btn">Enregistrer</button>
+            <button class="logout-btn">Déconnexion</button>
+        </div>
+    </div>
+    <script>
+        document.querySelectorAll(".edit-icon").forEach(icon => {
+            icon.addEventListener("click", function() {
+                let input = this.previousElementSibling;
+                input.removeAttribute("readonly");
+                input.focus();
+                input.classList.add("isCurrentlyFocused");
+            });
+        });
+        document.addEventListener("click", function(e) {
+            document.querySelectorAll(".editable input, .editable textarea").forEach(input => {
+                if (!input.contains(e.target) && !input.nextElementSibling.contains(e.target)) {
+                    input.setAttribute("readonly", "true");
+                    input.classList.remove("isCurrentlyFocused");
+                }
+            });
+        });
+        document.getElementById("imageUpload").addEventListener("change", function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById("profileImage").src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    </script>
+</body>
+</html>

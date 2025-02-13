@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>- StanJapap</title>
+    <link rel="stylesheet" href="styles/messages.css">
+</head>
+<body>
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h2>Discussions</h2>
+            <div class="sidebar-buttons">
+                <button>➕</button>
+                <button>👤</button>
+            </div>
+        </div>
+        <input type="text" class="search-bar" placeholder="Rechercher...">
+        <div class="contacts">
+            <div class="contact active"><img src="https://via.placeholder.com/40" alt=""> Contact 1</div>
+            <div class="contact"><img src="https://via.placeholder.com/40" alt=""> Contact 2</div>
+            <div class="contact"><img src="https://via.placeholder.com/40" alt=""> Contact 3</div>
+        </div>
+    </div>
+    <div class="chat-container">
+        <div class="chat-header">
+            <div class="contact" id="opened"><button id="back">❎</button><img src="https://via.placeholder.com/40" alt=""> Contact 1</div>
+        </div>
+        <div class="messages">
+            <hr>
+            <p>13/02/2025</p>
+            <div class="message received">Bonjour !</div>
+            <div class="message received">Je suis inscrit.</div>
+            <div class="message sent">Salut, comment ça va ?</div>
+            <hr>
+            <p>Lundi</p>
+            <div class="message sent">Salut</div>
+            <div class="message sent">Comment ça va ?</div>
+            <div class="message received">Bonjour !</div>
+        </div>
+        <div class="chat-input">
+            <input type="text" placeholder="Écrire un message...">
+            <button>&#10148;</button>
+        </div>
+    </div>
+    <script type="module">
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyDwRreHnfABpGF2x6tN4wHe6VZUE_nRun4",
+            authDomain: "stanjapap.firebaseapp.com",
+            databaseURL: "https://stanjapap-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "stanjapap",
+        };
+    </script>
+</body>
+</html>

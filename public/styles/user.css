@@ -1,0 +1,105 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+}
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: #e6e9ef;
+}
+.profile-container {
+    width: 400px;
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+.profile-pic {
+    position: relative;
+    display: inline-block;
+    width: 100px;
+    height: 100px;
+}
+.profile-pic img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #0033a0;
+}
+.field {
+    margin: 15px 0;
+    text-align: left;
+    padding: 10px;
+    border-radius: 5px;
+    background: #f1f1f1;
+}
+.field label {
+    font-weight: bold;
+    display: block;
+}
+.alias-popup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    padding: 20px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+    display: none;
+    z-index: 10;
+    border-radius: 10px;
+}
+.alias-popup input {
+    width: 100%;
+    padding: 8px;
+    margin: 10px 0;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+.buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+.save-alias-btn {
+    flex: 1;
+    padding: 10px;
+    background: lightblue;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+.message-btn {
+    flex: 1;
+    padding: 10px;
+    background: #0033a0;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+.save-btn {
+    flex: 1;
+    padding: 10px;
+    background: lightblue;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+.logout-btn {
+    flex: 1;
+    padding: 10px;
+    background: #0033a0;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}

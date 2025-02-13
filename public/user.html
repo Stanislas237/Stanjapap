@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profil de </title>
+    <link rel="stylesheet" href="styles/user.css">
+</head>
+<body>
+    <div class="profile-container">
+        <div class="profile-pic">
+            <img src="https://via.placeholder.com/100" alt="Profile Picture">
+        </div>
+        <div class="field">
+            <label>Pseudo :</label>
+            <p id="pseudo">Utilisateur</p>
+        </div>
+        <div class="field">
+            <label>Actu :</label>
+            <p id="actu">Disponible</p>
+        </div>
+        <div class="field">
+            <label>Email :</label>
+            <p id="email">Cet utilisateur a caché son email</p>
+        </div>
+        <div class="buttons">
+            <button class="save-alias-btn" onclick="openAliasPopup()">Enregistrer le contact</button>
+            <button class="message-btn">Lui écrire</button>
+        </div>
+    </div>
+    
+    <div class="alias-popup" id="aliasPopup">
+        <h3>Enregistrer un alias</h3>
+        <input type="text" id="aliasInput" placeholder="Entrer un alias">
+        <div class="buttons">
+            <button class="save-alias-btn" onclick="saveAlias()">Enregistrer</button>
+            <button class="message-btn" onclick="closeAliasPopup()">Annuler</button>
+        </div>
+    </div>
+    
+    <script>
+        function openAliasPopup() {
+            document.getElementById("aliasPopup").style.display = "block";
+        }
+        function closeAliasPopup() {
+            document.getElementById("aliasPopup").style.display = "none";
+        }
+        function saveAlias() {
+            let alias = document.getElementById("aliasInput").value;
+            if (alias) {
+                alert("Alias enregistré: " + alias);
+                closeAliasPopup();
+            }
+        }
+    </script>
+</body>
+</html>
