@@ -58,7 +58,22 @@ body {
 .contact {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     padding: 15px;
+
+    span{
+        display: flex;
+        align-items: center;
+    }
+}
+.contact:not(#opened)::after{
+    content: var(--unread);
+    width: 10%;
+    border-radius: 50%;
+    background-color: #ccc;
+    color: #0033a0;
+    text-align: center;
+    font-weight: 900;
 }
 .contact:not(#opened){
     border-bottom: 1px solid rgba(255, 255, 255, 0.2);
