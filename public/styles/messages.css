@@ -186,3 +186,13 @@ hr+p{
         display: var(--right);
     }
 }
+@media (min-width: 769px) {
+    .chat-container[data-active=""] {
+        width: 100%;
+        display: none;
+    }
+    .chat-container:not([data-active=""]){
+        width: 100%;
+        display: var(--right);
+    }
+}
