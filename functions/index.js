@@ -102,35 +102,35 @@ exports.getUser = onRequest(async (req, res) => {
     }
 });
 
-exports.readMessages = onRequest(async (req, res) => {
-    res.set("Access-Control-Allow-Origin", "https://stanjapap.web.app");
-    res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
-    res.set("Access-Control-Allow-Headers", "Content-Type");
+// exports.readMessages = onRequest(async (req, res) => {
+//     res.set("Access-Control-Allow-Origin", "https://stanjapap.web.app");
+//     res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+//     res.set("Access-Control-Allow-Headers", "Content-Type");
 
-    if (req.method === "OPTIONS")
-        return res.status(204).send("");
-    else if (req.method !== "POST")
-        return res.status(405).json({ "error": "Méthode non autorisée" });
+//     if (req.method === "OPTIONS")
+//         return res.status(204).send("");
+//     else if (req.method !== "POST")
+//         return res.status(405).json({ "error": "Méthode non autorisée" });
 
-    const { email, contact } = req.body;
+//     const { email, contact } = req.body;
 
-    if (!checkAuth(req, email))
-        return res.status(401).json({ "error": "Unauthenticated" });
+//     if (!checkAuth(req, email))
+//         return res.status(401).json({ "error": "Unauthenticated" });
 
-    try {
-        db.collection("messages").where("receiverMail", "==", email).where("senderMail", "==", contact)
-        .where("read", "==", false).get().then(snapshot => {
-            snapshot.forEach(doc => {
-                doc.ref.update({ read: true });
-            });
-        });
-        console.log("Messages lus");
-        return res.status(200).send("");
-    } catch (error) {
-        console.error("Error fetching messages:", error);
-        return res.status(500).json({ error: "Internal Server Error" });
-    }
-});
+//     try {
+//         db.collection("messages").where("receiverMail", "==", email).where("senderMail", "==", contact)
+//         .where("read", "==", false).get().then(snapshot => {
+//             snapshot.forEach(doc => {
+//                 doc.ref.update({ read: true });
+//             });
+//         });
+//         console.log("Messages lus");
+//         return res.status(200).send("");
+//     } catch (error) {
+//         console.error("Error fetching messages:", error);
+//         return res.status(500).json({ error: "Internal Server Error" });
+//     }
+// });
 
 exports.getFriends = onRequest(async (req, res) => {
     res.set("Access-Control-Allow-Origin", "https://stanjapap.web.app");

@@ -44,13 +44,100 @@
         </div>
     </div>
     <script type="module">
-        
-        const firebaseConfig = {
-            apiKey: "AIzaSyDwRreHnfABpGF2x6tN4wHe6VZUE_nRun4",
-            authDomain: "stanjapap.firebaseapp.com",
-            databaseURL: "https://stanjapap-default-rtdb.europe-west1.firebasedatabase.app",
-            projectId: "stanjapap",
-        };
+        import { getFirestore, collection, query, where, getDocs, updateDoc, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        const db = getFirestore();
+
+        const response = await fetch("https://getfriends-b2lv2k7uwq-uc.a.run.app", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ "email": JSON.parse(localStorage.getItem("user")).email })
+        });
+
+        localStorage.setItem("conversations", JSON.stringify(await response.json()));
+        renderContactList();
+
+
+        async function markMessagesAsRead(contact) {
+            const messagesRef = collection(db, "messages");
+            const q = query(
+                messagesRef,
+                where("receiverMail", "==", userEmail),
+                where("senderMail", "==", contact),
+                where("read", "==", false)
+            );
+
+            try {
+                const snapshot = await getDocs(q);
+                snapshot.forEach(async (doc) => {
+                    await updateDoc(doc.ref, { read: true });
+                });
+
+                let conversations = JSON.parse(localStorage.getItem("conversations")) ?? {};
+                conversations[contact]?.unreadCount = 0;
+                localStorage.setItem("conversations", JSON.stringify(conversations));
+                renderContactList();
+            } catch (error) {
+                console.error("Erreur lors de la mise à jour des messages :", error);
+            }
+        }
+
+        function renderContactList() {
+            let contactList = document.querySelector(".contacts");
+            contactList.innerHTML = ""; // Réinitialiser
+
+            let conversations = JSON.parse(localStorage.getItem("conversations")) ?? {};
+
+            for (let contact in Object.entries(conversations).sort((a, b) => b[1].lastMessage - a[1].lastMessage).reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {})) {
+                let conv = conversations[contact];
+                let unreadBadge = conv.unreadCount > 0 ? `(${conv.unreadCount} non lus)` : "";
+                contactList.innerHTML += `<li onclick="openChat('${contact}')">${contact} ${unreadBadge}</li>`;
+            }
+        }
+
+        function listenForNewMessages(email) {
+            const messagesRef = collection(db, "messages");
+            const q = query(messagesRef, where("receiverMail", "==", email));
+
+            onSnapshot(q, (snapshot) => {
+                snapshot.docChanges().forEach((change) => {
+                    if (change.type === "added") {
+                        let newMessage = change.doc.data();
+                        let sender = newMessage.senderMail;
+
+                        let conversations = JSON.parse(localStorage.getItem("conversations")) ?? {};
+                        
+                        if (!conversations[sender]) {
+                            conversations[sender] = { messages: [], lastMessage: newMessage.timestamp, unreadCount: 0 };
+                        }
+                        conversations[sender].messages.push(newMessage);
+                        conversations[sender].lastMessage = newMessage.timestamp;
+                        conversations[sender].unreadCount++;
+                        
+                        localStorage.setItem("conversations", JSON.stringify(conversations));
+                        renderContactList();
+
+                        // Si la conversation est actuellement ouverte, afficher immédiatement le message
+                        if (document.getElementById("chatWindow").getAttribute("data-active") === sender) {
+                            openChat(sender);
+                        }
+                    }
+                });
+            });
+        }
+
+        function openChat(contact) {
+            const messagesZone = document.querySelector(".messages");
+            messagesZone.innerHTML = ""; // Réinitialiser
+
+            let conversations = JSON.parse(localStorage.getItem("conversations")) ?? {};
+            let messages = conversations[contact].messages.sort((a, b) => a.timestamp - b.timestamp);
+            messages.forEach(msg => {
+                // AFFicher ici;
+            });
+
+            // Marquer les messages comme lus
+            markMessagesAsRead(contact);
+        }
     </script>
 </body>
 </html>

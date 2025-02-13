@@ -50,12 +50,14 @@
 
             const firebaseConfig = {
                 apiKey: "AIzaSyDwRreHnfABpGF2x6tN4wHe6VZUE_nRun4",
-                appId: "1:143091903095:web:bb74bfa8ca7d41120a7472",
+                authDomain: "stanjapap.firebaseapp.com",
+                databaseURL: "https://stanjapap-default-rtdb.europe-west1.firebasedatabase.app",
                 projectId: "stanjapap",
+                storageBucket: "stanjapap.firebasestorage.app",
                 messagingSenderId: "143091903095",
-                authDomain: "stanjapap.firebaseapp.com"
+                appId: "1:143091903095:web:bb74bfa8ca7d41120a7472"
             };
-    
+               
             const app = initializeApp(firebaseConfig);
             const auth = getAuth(app);
     
