@@ -337,10 +337,6 @@
             let messages = conversations[contact]?.messages ?? [];
             let date = null;
 
-            // Pour le drag
-            let startX = 0;
-            let moved = false;
-
             messages.forEach(msg => {
                 // Date
                 let time = msg.timestamp.seconds ?? msg.timestamp._seconds;
@@ -359,28 +355,8 @@
                 messageElement.innerHTML = msg.content;
                 messagesZone.appendChild(messageElement);
 
-
                 // Pour les tags
-                messageElement.addEventListener("click", (e) => showOptions(messageElement, msg.receiverMail === contact));
-                messageElement.addEventListener("touchstart", (e) => {
-                    startX = e.touches[0].clientX;
-                    moved = false;
-                });    
-                messageElement.addEventListener("touchmove", (e) => {
-                    let diff = e.touches[0].clientX - startX;
-                    if (diff > 20) {
-                        message.style.transform = `translateX(${diff}px)`;
-                        moved = true;
-                    }
-                });    
-                messageElement.addEventListener("touchend", () => {
-                    if (moved){
-                        const id = message.id.split("m-id-")[1];
-                        tagMessage(id);
-                    }    
-                    message.style.transition = "transform 0.3s ease";
-                    message.style.transform = "translateX(0)";
-                });
+                messageElement.addEventListener("click", (e) => showOptions(messageElement, msg.receiverMail === contact));                
             });
             
             chatContainer.setAttribute("data-active", contact);
@@ -410,12 +386,13 @@
 
             document.body.appendChild(options);
             
-            const rect = message.getBoundingClientRect();
-            options.style.top = `${rect.top + window.scrollY}px`;
+            const messageRect = message.getBoundingClientRect();
+            const optionsRect = options.getBoundingClientRect();
+            options.style.top = `${messageRect.top + window.scrollY}px`;
             if (isSender)
-                options.style.right = `${rect.left + 10}px`;
+                options.style.left = `${messageRect.left - optionsRect.width - 10}px`;
             else
-                options.style.left = `${rect.right + 10}px`;
+                options.style.left = `${messageRect.left + messageRect.width + 10}px`;
         }
 
         function tagMessage(messageId) {

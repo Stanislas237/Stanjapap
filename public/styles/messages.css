@@ -225,27 +225,6 @@ hr+p{
                 width: 90%;
                 height: 100%;
                 padding: 5px 10px;
-
-                .tagsender{
-                    width: 100%;
-                    height: 50%;
-                    font-family: "Tempus Sans ITC";
-                    font-size: small;
-                    font-weight: 900;
-                    overflow: hidden;
-                    white-space: nowrap;
-                    text-overflow: ellipsis;
-                }
-                .tagmessage{
-                    width: 100%;
-                    height: 50%;
-                    font-size: small;
-                    font-weight: lighter;
-                    font-style: italic;
-                    overflow: hidden;
-                    white-space: nowrap;
-                    text-overflow: ellipsis;
-                }
             }
             span{
                 cursor: pointer;
@@ -279,11 +258,31 @@ textarea::-webkit-scrollbar {
     cursor: pointer;
     font-size: 16px;
 }
+.tagsender{
+    width: 100%;
+    height: 50%;
+    font-family: "Tempus Sans ITC";
+    font-size: small;
+    font-weight: 900;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+.tagmessage{
+    width: 100%;
+    height: 50%;
+    font-size: small;
+    font-weight: lighter;
+    font-style: italic;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
 .message-options{
     position: fixed;
     z-index: 10;
     width: 50%;
-    max-width: 130px;
+    max-width: 150px;
     min-height: 100px;
     border-radius: 20px;
     border: 1px solid #0033a0;
