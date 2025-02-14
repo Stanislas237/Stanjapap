@@ -31,6 +31,12 @@
         </div>
     </div>
     <script type="module">
+        let write_to = null;
+        if (localStorage.hasOwnProperty("WRITE_TO")){
+            write_to = localStorage.getItem("WRITE_TO");
+            localStorage.removeItem("WRITE_TO");
+        }
+
         document.title = getUser().pseudo + " - StanJapap";
 
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -61,33 +67,43 @@
         const messagesZone = document.querySelector(".messages");
         const textMessage = document.querySelector("#textMessage");
         const searchText = document.querySelector("#search-bar");
-        const request = await fetch("https://getfriends-b2lv2k7uwq-uc.a.run.app", {
-            method: "POST",
-            headers: { 
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${getUser().token}`
-            },
-            body: JSON.stringify({ "email": getUser().email })
-        });
-        
-        if (request.status === 200){
-            const response = await request.json();
-            localStorage.setItem("conversations", JSON.stringify(response.conversations));
+        const contactList = document.querySelector(".contacts");
+        const DAYS = [ "Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
+
+        let contactActive = null;
+
+        if (!write_to){
+            const request = await fetch("https://getfriends-b2lv2k7uwq-uc.a.run.app", {
+                method: "POST",
+                headers: { 
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${getUser().token}`
+                },
+                body: JSON.stringify({ "email": getUser().email })
+            });
+            
+            if (request.status === 200){
+                const response = await request.json();
+                localStorage.setItem("conversations", JSON.stringify(response.conversations));
+                renderContactList();
+                listenForNewMessages(getUser().email);
+                listenForReadReceipts(getUser().email);
+            }
+            else if (request.status === 401){
+                console.log("Utilisateur non connecté.");
+                window.location.href = "/";
+            }
+        }
+        else{
             renderContactList();
             listenForNewMessages(getUser().email);
             listenForReadReceipts(getUser().email);
         }
-        else if (request.status === 401){
-            console.log("Utilisateur non connecté.");
-            window.location.href = "/";
-        }
-
 
         function getUser(){
             return JSON.parse(localStorage.getItem("user"));
         }
 
-        const DAYS = [ "Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
         function isDateInLast7Days(date) {
             const now = new Date(); // Date actuelle
             const sevenDaysAgo = new Date(); // Date il y a 7 jours
@@ -120,7 +136,6 @@
         }
 
         function renderContactList(conversations = null) {
-            let contactList = document.querySelector(".contacts");
             contactList.innerHTML = ""; // Réinitialiser
 
             if (!conversations)
@@ -138,7 +153,7 @@
                 if (conversations[contact].unreadCount > 0)
                     c.style.setProperty("--unread", `"${conversations[contact].unreadCount}"`);
                 c.classList.add("contact");
-
+                
                 c.innerHTML = `
                     <span>
                         <img src="${conversations[contact].ppUrl}" alt="${conversations[contact].pseudo}">
@@ -149,13 +164,23 @@
                     </span>
                 `;
                 c.addEventListener("click", () => {
+                    if (contactActive)
+                        contactActive.classList.remove("active");
+                    c.classList.add("active");
                     c.style.setProperty("--unread", 0);
+                    contactActive = c;
                     document.body.id = "right";
                     openChat(contact);
                     textMessage.focus();
+                    textMessage.value = "";
                     messagesZone.scrollTop = messagesZone.scrollHeight;
                 });
                 contactList.appendChild(c);
+
+                if (write_to && atob(write_to) === contact){
+                    c.click();
+                    write_to = null;
+                }
             }
         }
 
@@ -240,6 +265,7 @@
 
             document.querySelector("#back").addEventListener("click", ()=>{
                 chatContainer.setAttribute("data-active", "");
+                renderContactList();
                 document.body.id = "left";
             })
 
@@ -266,10 +292,10 @@
                 messageElement.classList.add("message", msg.receiverMail === contact ? msg.read ? "seen" : "sent" : "received");
                 messageElement.style.setProperty("--time", `"${msgHour}"`);
                 messageElement.innerHTML = msg.content;
-                chatContainer.setAttribute("data-active", contact);
                 messagesZone.appendChild(messageElement);
             });
-
+            
+            chatContainer.setAttribute("data-active", contact);
             // Marquer les messages comme lus
             markMessagesAsRead(contact);
         }

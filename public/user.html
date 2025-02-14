@@ -9,49 +9,116 @@
 <body>
     <div class="profile-container">
         <div class="profile-pic">
-            <img src="https://via.placeholder.com/100" alt="Profile Picture">
+            <img src="#" alt="Profile Picture" id="pp">
         </div>
         <div class="field">
             <label>Pseudo :</label>
-            <p id="pseudo">Utilisateur</p>
+            <p id="pseudo"></p>
         </div>
         <div class="field">
             <label>Actu :</label>
-            <p id="actu">Disponible</p>
+            <p id="actu"></p>
         </div>
         <div class="field">
             <label>Email :</label>
-            <p id="email">Cet utilisateur a caché son email</p>
+            <p id="email"></p>
         </div>
         <div class="buttons">
-            <button class="save-alias-btn" onclick="openAliasPopup()">Enregistrer le contact</button>
+            <button class="save-alias-btn">Enregistrer le contact</button>
             <button class="message-btn">Lui écrire</button>
         </div>
     </div>
     
     <div class="alias-popup" id="aliasPopup">
-        <h3>Enregistrer un alias</h3>
-        <input type="text" id="aliasInput" placeholder="Entrer un alias">
+        <h3>Enregistrer cet utilisateur</h3>
+        <input type="text" id="aliasInput" placeholder="Entrer un nom pour le contact">
         <div class="buttons">
-            <button class="save-alias-btn" onclick="saveAlias()">Enregistrer</button>
-            <button class="message-btn" onclick="closeAliasPopup()">Annuler</button>
+            <button class="save-alias-btn" id="saveAlias">Enregistrer</button>
+            <button class="message-btn">Annuler</button>
         </div>
     </div>
     
-    <script>
-        function openAliasPopup() {
-            document.getElementById("aliasPopup").style.display = "block";
+    <script type="module">
+        let params = new URLSearchParams(location.search);
+        let encodedUserId = params.get("u");
+        let userId = null;
+
+        if (!encodedUserId)
+            location.href = "404.html";
+
+        const request = await fetch("https://getProfile-b2lv2k7uwq-uc.a.run.app", {
+            method: "POST",
+            headers: {  "Content-Type": "application/json" },
+            body: JSON.stringify({ "email": atob(encodedUserId) })
+        });
+        
+        if (request.status === 200){
+            const profile = (await request.json()).profile;
+
+            document.querySelector("#pp").src = profile.ppUrl;
+            document.querySelector("#pseudo").textContent = profile.pseudo;
+            document.querySelector("#actu").textContent = profile.actu;
+            document.querySelector("#email").textContent = profile.email ?? "Cet utilisateur a caché son email";
+            document.querySelector(".message-btn").addEventListener("click", () => {
+                let conversations = JSON.parse(localStorage.getItem("conversations")) ?? {};
+                if (!conversations.hasOwnProperty(atob(encodedUserId))){
+                    conversations[atob(encodedUserId)] = { messages: [], lastMessage: { "seconds": Math.floor(Date.now() / 1000), "content": "" }, unreadCount: 0, ppUrl: profile.ppUrl, pseudo: profile.pseudo };
+                    localStorage.setItem("conversations", JSON.stringify(conversations));
+                }
+                localStorage.setItem("WRITE_TO", encodedUserId);
+                location.href = `messages.html`;
+            });
+        }
+        else if (request.status === 404)
+            location.href = "/";
+        else
+            document.querySelector(".profile-container").innerHTML = "<p>Une erreur s'est produite. Veuillez réessayer ultérieurement.</p>";
+
+        let saving = false;
+        async function saveAlias() {
+            if (saving) return;
+            saving = true;
+
+            let alias = document.querySelector("#aliasInput");
+            if (alias.value.trim()) {
+
+                try {                    
+                    const request = await fetch("https://saveAlias-b2lv2k7uwq-uc.a.run.app", {
+                        method: "POST",
+                        headers: { 
+                            "Content-Type": "application/json",
+                            "Authorization": `Bearer ${getUser().token}`
+                        },
+                        body: JSON.stringify({ "email": getUser().email, "contact": atob(encodedUserId), "alias": alias.value.trim() })
+                    });
+                    
+                    if (request.status === 401) location.href = "/";
+                    else if (request.status === 200){
+                        const aliases = (await request.json()).aliases;
+                        const user = getUser();
+                        user.aliases = aliases;
+                        localStorage.setItem("user", JSON.stringify(user));
+                    }
+                    
+                    alias.value = "";
+                    closeAliasPopup();
+                } catch (error) {
+                    document.querySelector(".profile-container").innerHTML = "<p>Une erreur s'est produite. Veuillez réessayer ultérieurement.</p>";
+                }
+            }
+            saving = false;
+        }
+
+        function getUser(){
+            return JSON.parse(localStorage.getItem("user"));
         }
         function closeAliasPopup() {
             document.getElementById("aliasPopup").style.display = "none";
         }
-        function saveAlias() {
-            let alias = document.getElementById("aliasInput").value;
-            if (alias) {
-                alert("Alias enregistré: " + alias);
-                closeAliasPopup();
-            }
-        }
+
+        document.querySelector(".save-alias-btn").addEventListener("click", () => document.getElementById("aliasPopup").style.display = "block");
+        document.querySelector(".message-btn").addEventListener("click", closeAliasPopup)
+        document.querySelector("#saveAlias").addEventListener("click", saveAlias)
     </script>
 </body>
 </html>
