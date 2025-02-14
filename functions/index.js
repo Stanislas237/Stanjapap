@@ -114,7 +114,14 @@ exports.getUser = onRequest(async (req, res) => {
         await userRef.update({ "token": token });  
         
         res.status(200).json({
-            "userData": { "pseudo": user.data().pseudo, "aliases": user.data().aliases, "token": token }
+            "userData": {
+                "pseudo": user.data().pseudo,
+                "aliases": user.data().aliases,
+                "actu": user.data().actu,
+                "ppUrl": user.data().ppUrl,
+                "showEmail": user.data().showEmail,
+                "token": token 
+            }
         });
     } catch (error) {
         console.log(error);

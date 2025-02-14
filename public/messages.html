@@ -12,7 +12,7 @@
             <h2>Discussions</h2>
             <div class="sidebar-buttons">
                 <!-- <button>➕</button> -->
-                <button>👤</button>
+                <button id="myProfile">👤</button>
             </div>
         </div>
         <input type="text" id="search-bar" placeholder="Rechercher...">
@@ -400,6 +400,8 @@
             renderContactList(filteredConversations);
         }
         searchText.addEventListener("input", filterConversations);
+
+        document.querySelector("#myProfile").addEventListener("click", () => location.href = "profil.html");
     </script>
 </body>
 </html>

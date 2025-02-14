@@ -51,7 +51,7 @@ body {
 .field label {
     font-weight: bold;
 }
-.field input, .field textarea {
+.field input, .field textarea, .field #email, .field #url {
     width: 100%;
     padding: 8px;
     margin-top: 5px;
@@ -61,14 +61,19 @@ body {
     background: transparent;
     outline: none;
 }
-.field input:not(#email), .field textarea {
+#url{
+    color: #0033a0;
+    font-style: italic;
+    font-size: small;
+}
+.field input, .field textarea {
     border-radius: 10px;
 }
 .editable {
     display: flex;
     align-items: center;
 }
-.edit-icon {
+.edit-icon, .copy-icon {
     margin-left: 10px;
     cursor: pointer;
 }

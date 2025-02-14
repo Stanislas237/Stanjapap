@@ -9,7 +9,7 @@
 <body>
     <div class="profile-container">
         <div class="profile-pic">
-            <img id="profileImage" src="https://via.placeholder.com/100" alt="Profile Picture">
+            <img id="profileImage" src="" alt="Profile Picture">
             <label class="edit-pic">
                 ✎
                 <input type="file" id="imageUpload" accept="image/*">
@@ -31,10 +31,17 @@
         </div>
         <div class="field">
             <label>Email :</label>
-            <input type="email" id="email" value="user@example.com" readonly>
+            <div id="email" readonly></div>
             <div class="toggle">
-                <span>Afficher mon email</span>
+                <span>Afficher mon email aux autres</span>
                 <input type="checkbox" id="show-email" checked>
+            </div>
+        </div>
+        <div class="field">
+            <label>URL du profil :</label>
+            <div class="editable">
+                <div id="url" readonly></div>
+                <span class="copy-icon">📋</span>
             </div>
         </div>
         <div class="buttons">
@@ -50,6 +57,14 @@
                 input.focus();
                 input.classList.add("isCurrentlyFocused");
             });
+        });
+        document.querySelector(".copy-icon").addEventListener("click", async function() {
+            let div = this.previousElementSibling;
+            await navigator.clipboard.writeText(div.textContent);
+            this.textContent = "✅";
+            setTimeout(() => {
+                this.textContent = "📋";
+            }, 5000);
         });
         document.addEventListener("click", function(e) {
             document.querySelectorAll(".editable input, .editable textarea").forEach(input => {
@@ -69,6 +84,16 @@
                 reader.readAsDataURL(file);
             }
         });
+        const user = JSON.parse(localStorage.getItem("user")) ?? null;
+        if (!user)
+            location.href = "/";
+        
+        document.querySelector("#profileImage").src = user.ppUrl;
+        document.querySelector("#pseudo").value = user.pseudo;
+        document.querySelector("#actu").value = user.actu;
+        document.querySelector("#email").value = user.email;
+        document.querySelector("#show-email").checked = user.showEmail;
+        document.querySelector("#url").textContent = `https://stanjapap.web.app/user.html?u=${btoa(user.email)}`;
     </script>
 </body>
 </html>
