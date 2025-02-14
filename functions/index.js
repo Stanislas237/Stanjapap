@@ -168,8 +168,7 @@ exports.getFriends = onRequest(async (req, res) => {
             }
             if (!alreadyExists(msg, conversations[otherUser].messages)){
                 conversations[otherUser].messages.push(msg);
-                if (!conversations[otherUser].lastMessage)
-                    conversations[otherUser].lastMessage = { "seconds": msg.timestamp.seconds ?? msg.timestamp._seconds, "content": msg.content };    
+                conversations[otherUser].lastMessage = { "seconds": msg.timestamp.seconds ?? msg.timestamp._seconds, "content": msg.content };    
                 if (isUnread)
                     conversations[otherUser].unreadCount++;
             }

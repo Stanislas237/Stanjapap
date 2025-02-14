@@ -19,15 +19,26 @@
         <div class="contacts">
         </div>
     </div>
-    <div class="chat-container">
+    <div class="chat-container" tag-message="none">
         <div class="chat-header">
             <div class="contact" id="opened"><button id="back">❎</button><img src="" alt=""></div>
         </div>
         <div class="messages">
         </div>
         <div class="chat-input">
-            <textarea placeholder="Écrire un message..." id="textMessage"></textarea>
-            <button>&#10148;</button>
+            <div class="tagMaster">
+                <div class="tagzone">
+                    <div class="tagdata">
+                        <div class="tagsender"></div>
+                        <div class="tagmessage"></div>
+                    </div>
+                    <span id="close-tag">❌</span>
+                </div>
+            </div>
+            <div class="chat-inputs">
+                <textarea placeholder="Écrire un message..." id="textMessage"></textarea>
+                <button>&#10148;</button>
+            </div>
         </div>
     </div>
     <script type="module">
@@ -35,6 +46,18 @@
         if (localStorage.hasOwnProperty("WRITE_TO")){
             write_to = localStorage.getItem("WRITE_TO");
             localStorage.removeItem("WRITE_TO");
+        }
+
+        preventBack();
+        window.addEventListener("popstate", function (event) {
+            preventBack();
+        });
+        document.addEventListener('contextmenu', function(event) {
+            event.preventDefault();
+        });
+        function preventBack() {
+            history.pushState(null, "", window.location.href);
+            history.pushState(null, "", window.location.href);
         }
 
         document.title = getUser().pseudo + " - StanJapap";
@@ -68,6 +91,7 @@
         const textMessage = document.querySelector("#textMessage");
         const searchText = document.querySelector("#search-bar");
         const contactList = document.querySelector(".contacts");
+        const tagMaster = document.querySelector(".tagMaster");
         const DAYS = [ "Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
 
         let contactActive = null;
@@ -84,6 +108,23 @@
             
             if (request.status === 200){
                 const response = await request.json();
+
+                for (const user in response.conversations) {
+                    response.conversations[user].messages =  response.conversations[user].messages.sort((a, b) => {
+                        const timeA = (a.timestamp?.seconds ?? a.timestamp?._seconds) * 1000 + (a.timestamp?.nanoseconds ?? a.timestamp?._nanoseconds) / 1e6;
+                        const timeB = (b.timestamp?.seconds ?? b.timestamp?._seconds) * 1000 + (b.timestamp?.nanoseconds ?? b.timestamp?._nanoseconds) / 1e6;
+                        return timeA - timeB;
+                    });
+                    
+                    const length = response.conversations[user].messages.length;
+                    if (length > 0){
+                        const lastMessage = response.conversations[user].messages[length - 1];
+                        response.conversations[user].lastMessage = { 
+                            "seconds": lastMessage.timestamp.seconds ?? lastMessage.timestamp._seconds,
+                            "content": lastMessage.content
+                        }
+                    }
+                }
                 localStorage.setItem("conversations", JSON.stringify(response.conversations));
                 renderContactList();
                 listenForNewMessages(getUser().email);
@@ -181,7 +222,7 @@
                     <span>
                         <img src="${conversations[contact].ppUrl}" alt="${conversations[contact].pseudo}">
                         <div class="preview">
-                            <span class="nom">${getUser()["aliases"][contact] ?? conversations[contact].pseudo}</span>
+                            <span class="nom">${getUser()["aliases"] ? getUser()["aliases"][contact] ?? conversations[contact].pseudo : conversations[contact].pseudo }</span>
                             <div class="desc">${conversations[contact]["lastMessage"]["content"] ?? ""}</div>
                         </div>
                     </span>
@@ -271,7 +312,7 @@
 
                                 localStorage.setItem("conversations", JSON.stringify(conversations));                                
                                 // Met à jour le chat ouvert
-                                if (document.querySelector(".chat-container").getAttribute("data-active") === receiver) {
+                                if (chatContainer.getAttribute("data-active") === receiver) {
                                     openChat(receiver);
                                 }
                             }
@@ -284,7 +325,7 @@
         function openChat(contact) {
             let conversations = JSON.parse(localStorage.getItem("conversations")) ?? {};
             const header = document.querySelector("#opened");
-            header.innerHTML = `<button id="back">❎</button><img src="${conversations[contact].ppUrl}" alt="${conversations[contact].pseudo}"> ${getUser()["aliases"][contact] ?? conversations[contact].pseudo}`;
+            header.innerHTML = `<button id="back">❎</button><img src="${conversations[contact].ppUrl}" alt="${conversations[contact].pseudo}"> ${getUser()["aliases"] ? getUser()["aliases"][contact] ?? conversations[contact].pseudo : conversations[contact].pseudo }`;
 
             document.querySelector("#back").addEventListener("click", ()=>{
                 chatContainer.setAttribute("data-active", "");
@@ -293,12 +334,12 @@
             })
 
             messagesZone.innerHTML = ""; // Réinitialiser
-            let messages = conversations[contact]?.messages.sort((a, b) => {
-                const timeA = (a.timestamp?.seconds ?? a.timestamp?._seconds) * 1000 + (a.timestamp?.nanoseconds ?? a.timestamp?._nanoseconds) / 1e6;
-                const timeB = (b.timestamp?.seconds ?? b.timestamp?._seconds) * 1000 + (b.timestamp?.nanoseconds ?? b.timestamp?._nanoseconds) / 1e6;
-                return timeA - timeB;
-            });
+            let messages = conversations[contact]?.messages ?? [];
             let date = null;
+
+            // Pour le drag
+            let startX = 0;
+            let moved = false;
 
             messages.forEach(msg => {
                 // Date
@@ -312,17 +353,103 @@
                     date = messageDate;
                 }
                 const messageElement = document.createElement("div");
+                messageElement.id = `m-id-${messages.indexOf(msg)}`;
                 messageElement.classList.add("message", msg.receiverMail === contact ? msg.read ? "seen" : "sent" : "received");
                 messageElement.style.setProperty("--time", `"${msgHour}"`);
                 messageElement.innerHTML = msg.content;
                 messagesZone.appendChild(messageElement);
+
+
+                // Pour les tags
+                messageElement.addEventListener("click", (e) => showOptions(messageElement, msg.receiverMail === contact));
+                messageElement.addEventListener("touchstart", (e) => {
+                    startX = e.touches[0].clientX;
+                    moved = false;
+                });    
+                messageElement.addEventListener("touchmove", (e) => {
+                    let diff = e.touches[0].clientX - startX;
+                    if (diff > 20) {
+                        message.style.transform = `translateX(${diff}px)`;
+                        moved = true;
+                    }
+                });    
+                messageElement.addEventListener("touchend", () => {
+                    if (moved){
+                        const id = message.id.split("m-id-")[1];
+                        tagMessage(id);
+                    }    
+                    message.style.transition = "transform 0.3s ease";
+                    message.style.transform = "translateX(0)";
+                });
             });
             
             chatContainer.setAttribute("data-active", contact);
             // Marquer les messages comme lus
             markMessagesAsRead(contact);
         }
-    
+        
+        function showOptions(message, isSender) {
+            const id = message.id.split("m-id-")[1];
+
+            const options = document.createElement("div");
+            options.classList.add("message-options");
+
+            const tagButton = document.createElement("button");
+            tagButton.textContent = "🔄 Répondre";
+            tagButton.addEventListener("click", () => tagMessage(id));
+            options.appendChild(tagButton);
+
+            const delButton = document.createElement("button");
+            delButton.textContent = "🚮 Supprimer";
+            delButton.addEventListener("click", () => tagMessage(id));
+            options.appendChild(delButton);
+
+            setTimeout(() => {
+                document.addEventListener("click", () => options.remove(), { once: true });
+            }, 20);
+
+            document.body.appendChild(options);
+            
+            const rect = message.getBoundingClientRect();
+            options.style.top = `${rect.top + window.scrollY}px`;
+            if (isSender)
+                options.style.right = `${rect.left + 10}px`;
+            else
+                options.style.left = `${rect.right + 10}px`;
+        }
+
+        function tagMessage(messageId) {
+            if (!messageId) {
+                console.log("id absent");
+                return;
+            }
+
+            const receiverMail = chatContainer.getAttribute("data-active");
+            
+            if (receiverMail === "") {
+                console.log("mail absent");
+                return;
+            }
+
+            let conversations = JSON.parse(localStorage.getItem("conversations"));
+            const messageList = conversations[receiverMail]?.messages;
+
+            if (+messageId >= messageList.length) {
+                console.log("MessageId est trop grand");
+                return;
+            }
+
+            const message = messageList[+messageId];
+            chatContainer.setAttribute("tag-message", messageId);
+
+            tagMaster.style.display = "flex";
+            if (message.receiverMail === receiverMail)
+                document.querySelector(".tagsender").textContent = "Vous";
+            else
+                document.querySelector(".tagsender").textContent = getUser()["aliases"] ? getUser()["aliases"][receiverMail] ?? conversations[receiverMail].pseudo : conversations[receiverMail].pseudo;
+            document.querySelector(".tagmessage").textContent = message.content;
+        }
+
         let sendingMessage = false;
         async function sendMessage(){
             if (sendingMessage) return;
@@ -400,8 +527,15 @@
             renderContactList(filteredConversations);
         }
         searchText.addEventListener("input", filterConversations);
-
+        
         document.querySelector("#myProfile").addEventListener("click", () => location.href = "profil.html");
+        
+        document.querySelector("#close-tag").addEventListener("click", () => {
+            const receiverMail = chatContainer.getAttribute("tag-message");
+            if (receiverMail === "") return;
+            chatContainer.setAttribute("tag-message", "none");
+            tagMaster.style.display = "none";
+        });
     </script>
 </body>
 </html>
