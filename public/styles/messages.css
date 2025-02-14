@@ -142,11 +142,14 @@ hr+p{
     font-size: 12px;
     text-align: right;
     margin-top: 5px;
-  }
-.sent {
+}
+.sent, .seen {
     background-color: #0033a0;
     color: white;
     align-self: flex-end;
+}
+.seen{
+    background-color: #87abf9 !important;
 }
 .received {
     background-color: #d1d1d1;

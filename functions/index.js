@@ -79,7 +79,7 @@ exports.addUser = onRequest(async (req, res) => {
             name,
             pseudo,
             aliases: [],
-            ppUrl: "https://pngtree.com/freepng/unknown-user-question-mark-about_8217878.html",
+            ppUrl: "https://as2.ftcdn.net/v2/jpg/01/99/45/45/1000_F_199454533_GIBKQvbUBlu0hl5xhn64pJOHp1nn5W2C.jpg",
             registerDate: admin.firestore.FieldValue.serverTimestamp()
         });
         

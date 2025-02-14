@@ -72,7 +72,8 @@
             const response = await request.json();
             localStorage.setItem("conversations", JSON.stringify(response.conversations));
             renderContactList();
-            listenForNewMessages(JSON.parse(localStorage.getItem("user")).email);
+            listenForNewMessages(user.email);
+            listenForReadReceipts(user.email);
         }
 
 
@@ -95,7 +96,6 @@
                 if (conversations[contact])
                     conversations[contact].unreadCount = 0;
                 localStorage.setItem("conversations", JSON.stringify(conversations));
-                renderContactList();
             } catch (error) {
                 console.error("Erreur lors de la mise à jour des messages :", error);
             }
@@ -107,7 +107,14 @@
 
             let conversations = JSON.parse(localStorage.getItem("conversations")) ?? {};
 
-            for (let contact in Object.entries(conversations).sort((a, b) => b[1].lastMessage - a[1].lastMessage).reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {})) {
+            conversations = Object.entries(conversations)
+            .sort(([, a], [, b]) => (b.lastMessage?._seconds ?? b.lastMessage?.seconds) - (a.lastMessage?._seconds ?? a.lastMessage?.seconds))
+            .reduce((acc, [key, value]) => {
+                acc[key] = value;
+                return acc;
+            }, {});
+
+            for (let contact in conversations) {
                 const c = document.createElement("div");
                 if (conversations[contact].unreadCount > 0)
                     c.style.setProperty("--unread", `"${conversations[contact].unreadCount}"`);
@@ -118,6 +125,7 @@
                     c.style.setProperty("--unread", 0);
                     document.body.id = "right";
                     openChat(contact);
+                    messagesZone.scrollTop = messagesZone.scrollHeight;
                 });
                 contactList.appendChild(c);
             }
@@ -160,6 +168,43 @@
             });
         }
 
+        function listenForReadReceipts(email) {
+            const messagesRef = collection(db, "messages");
+            const q = query(messagesRef, where("senderMail", "==", email)); // Écoute les messages que l'utilisateur a envoyés
+
+            onSnapshot(q, (snapshot) => {
+                snapshot.docChanges().forEach((change) => {
+                    if (change.type === "modified") {
+                        let updatedMessage = change.doc.data();
+                        let receiver = updatedMessage.receiverMail;
+
+                        // Vérifie si le message a été lu
+                        if (updatedMessage.read) {
+                            let conversations = JSON.parse(localStorage.getItem("conversations")) ?? {};
+
+                            if (conversations[receiver]) {
+                                let messageIndex = conversations[receiver].messages.findIndex(m => {
+                                    if (m.timestamp.hasOwnProperty("_seconds"))
+                                        return m.timestamp._seconds === updatedMessage.timestamp.seconds
+                                    else
+                                        return m.timestamp.seconds === updatedMessage.timestamp.seconds
+                                });
+
+                                if (messageIndex !== -1)
+                                    conversations[receiver].messages[messageIndex].read = true;
+
+                                localStorage.setItem("conversations", JSON.stringify(conversations));                                
+                                // Met à jour le chat ouvert
+                                if (document.querySelector(".chat-container").getAttribute("data-active") === receiver) {
+                                    openChat(receiver);
+                                }
+                            }
+                        }
+                    }
+                });
+            });
+        }
+
         function openChat(contact) {
             let conversations = JSON.parse(localStorage.getItem("conversations")) ?? {};
             const header = document.querySelector("#opened");
@@ -190,14 +235,13 @@
                 }
                 date = msgDate;
                 const messageElement = document.createElement("div");
-                messageElement.classList.add("message", msg.receiverMail === contact ? "sent" : "received");
+                messageElement.classList.add("message", msg.receiverMail === contact ? msg.read ? "seen" : "sent" : "received");
                 messageElement.style.setProperty("--time", `"${msgHour}"`);
                 messageElement.innerHTML = msg.content;
                 chatContainer.setAttribute("data-active", contact);
                 messagesZone.appendChild(messageElement);
             });
 
-            messagesZone.scrollTop = messagesZone.scrollHeight;
             // Marquer les messages comme lus
             markMessagesAsRead(contact);
         }
@@ -223,7 +267,7 @@
                 "body": JSON.stringify({ "senderMail": user.email, "receiverMail": receiverMail, "content": messageToSend })
             });
             if (request.status === 200){
-                const message = await request.json().message;
+                const message = (await request.json()).message;
 
                 let conversations = JSON.parse(localStorage.getItem("conversations")) ?? {};                        
                 if (!conversations[receiverMail]) {
