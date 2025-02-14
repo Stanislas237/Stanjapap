@@ -258,6 +258,16 @@ textarea::-webkit-scrollbar {
     cursor: pointer;
     font-size: 16px;
 }
+.message .tagdata{
+    width: 100%;
+    height: 60px;
+    margin-bottom: 10px;
+    padding: 5px 10px;
+    background-color: aliceblue;
+    border: 1px solid black;
+    color: black;
+    border-radius: 20px;
+}
 .tagsender{
     width: 100%;
     height: 50%;

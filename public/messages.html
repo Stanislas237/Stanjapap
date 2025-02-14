@@ -48,17 +48,11 @@
             localStorage.removeItem("WRITE_TO");
         }
 
-        preventBack();
-        window.addEventListener("popstate", function (event) {
-            preventBack();
-        });
-        document.addEventListener('contextmenu', function(event) {
+        window.addEventListener('beforeunload', function(event) {
             event.preventDefault();
+            event.returnValue = '';
+            return '';
         });
-        function preventBack() {
-            history.pushState(null, "", window.location.href);
-            history.pushState(null, "", window.location.href);
-        }
 
         document.title = getUser().pseudo + " - StanJapap";
 
@@ -352,11 +346,36 @@
                 messageElement.id = `m-id-${messages.indexOf(msg)}`;
                 messageElement.classList.add("message", msg.receiverMail === contact ? msg.read ? "seen" : "sent" : "received");
                 messageElement.style.setProperty("--time", `"${msgHour}"`);
-                messageElement.innerHTML = msg.content;
-                messagesZone.appendChild(messageElement);
 
-                // Pour les tags
-                messageElement.addEventListener("click", (e) => showOptions(messageElement, msg.receiverMail === contact));                
+                // Affichage du tag
+                if (msg.tag !== ""){
+                    const tagData = document.createElement("div");
+                    tagData.classList.add("tagdata");
+
+                    let conversations = JSON.parse(localStorage.getItem("conversations")) ?? {};
+                    const receiverMail = chatContainer.getAttribute("data-active");
+                    const messageList = conversations[receiverMail]?.messages ?? null;
+
+                    if (messageList) {
+                        const message = messageList[+msg.tag];
+                        const sender = message.receiverMail === receiverMail ? "Vous" : getUser()["aliases"] ? getUser()["aliases"][receiverMail] ?? conversations[receiverMail].pseudo : conversations[receiverMail].pseudo;
+
+                        tagData.innerHTML = `
+                            <div class="tagsender">${sender}</div>
+                            <div class="tagmessage">${message.content}</div>
+                        `;
+
+                        tagData.addEventListener("click", () => location.href = `#m-id-${msg.tag}`);
+                        
+                        messageElement.appendChild(tagData);
+                        chatContainer.setAttribute("tag-message", "none");
+                    }
+                }
+                
+                messageElement.innerHTML += msg.content;
+
+                messageElement.addEventListener("click", () => showOptions(messageElement, msg.receiverMail === contact));                
+                messagesZone.appendChild(messageElement);
             });
             
             chatContainer.setAttribute("data-active", contact);
@@ -427,12 +446,20 @@
             document.querySelector(".tagmessage").textContent = message.content;
         }
 
+        function closeTag(){
+            const tag = chatContainer.getAttribute("tag-message");
+            if (tag === "none") return;
+            chatContainer.setAttribute("tag-message", "none");
+            tagMaster.style.display = "none";
+        }
+
         let sendingMessage = false;
         async function sendMessage(){
             if (sendingMessage) return;
             sendingMessage = true;
 
             const receiverMail = chatContainer.getAttribute("data-active");
+            const tag = chatContainer.getAttribute("tag-message");
             const messageToSend = textMessage.value.trim();
             if (!receiverMail || receiverMail === "" || !messageToSend || messageToSend === ""){
                 sendingMessage = false;
@@ -445,7 +472,7 @@
                     "Content-Type": "application/json",
                     "Authorization": `Bearer ${getUser().token}`
                 },
-                "body": JSON.stringify({ "senderMail": getUser().email, "receiverMail": receiverMail, "content": messageToSend })
+                "body": JSON.stringify({ "senderMail": getUser().email, "receiverMail": receiverMail, "content": messageToSend, "tag": tag === "none" ? "" : tag })
             });
             if (request.status === 200){
                 const message = (await request.json()).message;
@@ -497,7 +524,7 @@
 
             const filteredConversations = Object.fromEntries(Object.entries(conversations).filter(([email, conv]) => {
                 const pseudo = conv.pseudo.toLowerCase() ?? "";
-                const alias = aliases[email]?.toLowerCase() ?? "";
+                const alias = aliases ? aliases[email]?.toLowerCase() ?? "" : "";
 
                 return pseudo.includes(text) || alias.includes(text);
             }));
@@ -507,12 +534,7 @@
         
         document.querySelector("#myProfile").addEventListener("click", () => location.href = "profil.html");
         
-        document.querySelector("#close-tag").addEventListener("click", () => {
-            const receiverMail = chatContainer.getAttribute("tag-message");
-            if (receiverMail === "") return;
-            chatContainer.setAttribute("tag-message", "none");
-            tagMaster.style.display = "none";
-        });
+        document.querySelector("#close-tag").addEventListener("click", closeTag);
     </script>
 </body>
 </html>

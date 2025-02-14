@@ -212,7 +212,7 @@ exports.sendMessage = onRequest(async (req, res) => {
         "receiverMail": receiverMail,
         "content": content,
         "tag": tag ?? "",
-        "read": false,  // Par défaut, le message n'est pas lu
+        "read": false,
         "timestamp": timestamp
     };
 
