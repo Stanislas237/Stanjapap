@@ -55,6 +55,7 @@
         if (request.status === 200){
             const profile = (await request.json()).profile;
 
+            document.title = "Profil de " + profile.pseudo;
             document.querySelector("#pp").src = profile.ppUrl;
             document.querySelector("#pseudo").textContent = profile.pseudo;
             document.querySelector("#actu").textContent = profile.actu;
