@@ -55,7 +55,6 @@
             }
         });
 
-        const user = JSON.parse(localStorage.getItem("user"));
         const chatContainer = document.querySelector(".chat-container");
         const messagesZone = document.querySelector(".messages");
         const textMessage = document.querySelector("#textMessage");
@@ -63,25 +62,29 @@
             method: "POST",
             headers: { 
                 "Content-Type": "application/json",
-                "Authorization": `Bearer ${user.token}`
+                "Authorization": `Bearer ${getUser().token}`
             },
-            body: JSON.stringify({ "email": user.email })
+            body: JSON.stringify({ "email": getUser().email })
         });
         
         if (request.status === 200){
             const response = await request.json();
             localStorage.setItem("conversations", JSON.stringify(response.conversations));
             renderContactList();
-            listenForNewMessages(user.email);
-            listenForReadReceipts(user.email);
+            listenForNewMessages(getUser().email);
+            listenForReadReceipts(getUser().email);
         }
 
+
+        function getUser(){
+            return JSON.parse(localStorage.getItem("user"));
+        }
 
         async function markMessagesAsRead(contact) {
             const messagesRef = collection(db, "messages");
             const q = query(
                 messagesRef,
-                where("receiverMail", "==", user.email),
+                where("receiverMail", "==", getUser().email),
                 where("senderMail", "==", contact),
                 where("read", "==", false)
             );
@@ -120,7 +123,15 @@
                     c.style.setProperty("--unread", `"${conversations[contact].unreadCount}"`);
                 c.classList.add("contact");
 
-                c.innerHTML = `<span><img src="${conversations[contact].ppUrl}" alt="${conversations[contact].pseudo}"> ${JSON.parse(localStorage.getItem("user"))["aliases"][contact] ?? conversations[contact].pseudo}</span>`;
+                c.innerHTML = `
+                    <span>
+                        <img src="${conversations[contact].ppUrl}" alt="${conversations[contact].pseudo}">
+                        <div class="preview">
+                            <span class="nom">${getUser()["aliases"][contact] ?? conversations[contact].pseudo}</span>
+                            <div class="desc">${conversations[contact][lastMessage][content] ?? ""}</div>
+                        </div>
+                    </span>
+                `;
                 c.addEventListener("click", () => {
                     c.style.setProperty("--unread", 0);
                     document.body.id = "right";
@@ -155,7 +166,7 @@
                             conversations[sender] = { messages: [], lastMessage: null, unreadCount: 0 };
                         }
                         conversations[sender].messages.push(newMessage);
-                        conversations[sender].lastMessage = newMessage.timestamp;
+                        conversations[sender].lastMessage = { "seconds": newMessage.timestamp.seconds ?? newMessage.timestamp._seconds, "content": newMessage.content };    
                         conversations[sender].unreadCount++;
 
                         localStorage.setItem("conversations", JSON.stringify(conversations));
@@ -209,7 +220,7 @@
         function openChat(contact) {
             let conversations = JSON.parse(localStorage.getItem("conversations")) ?? {};
             const header = document.querySelector("#opened");
-            header.innerHTML = `<button id="back">❎</button><img src="${conversations[contact].ppUrl}" alt="${conversations[contact].pseudo}"> ${JSON.parse(localStorage.getItem("user"))["aliases"][contact] ?? conversations[contact].pseudo}`;
+            header.innerHTML = `<button id="back">❎</button><img src="${conversations[contact].ppUrl}" alt="${conversations[contact].pseudo}"> ${getUser()["aliases"][contact] ?? conversations[contact].pseudo}`;
 
             document.querySelector("#back").addEventListener("click", ()=>{
                 chatContainer.setAttribute("data-active", "");
@@ -263,9 +274,9 @@
                 "method": "POST",
                 "headers": {
                     "Content-Type": "application/json",
-                    "Authorization": `Bearer ${user.token}`
+                    "Authorization": `Bearer ${getUser().token}`
                 },
-                "body": JSON.stringify({ "senderMail": user.email, "receiverMail": receiverMail, "content": messageToSend })
+                "body": JSON.stringify({ "senderMail": getUser().email, "receiverMail": receiverMail, "content": messageToSend })
             });
             if (request.status === 200){
                 const message = (await request.json()).message;
@@ -275,7 +286,7 @@
                     conversations[receiverMail] = { messages: [], lastMessage: null, unreadCount: 0 };
                 }
                 conversations[receiverMail].messages.push(message);
-                conversations[receiverMail].lastMessage = message.timestamp;
+                conversations[receiverMail].lastMessage = { "seconds": message.timestamp.seconds ?? message.timestamp._seconds, "content": message.content };    
                 
                 localStorage.setItem("conversations", JSON.stringify(conversations));
                 renderContactList();

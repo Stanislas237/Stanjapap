@@ -186,11 +186,11 @@ exports.getFriends = onRequest(async (req, res) => {
             const otherUser = msg.senderMail === email ? msg.receiverMail : msg.senderMail;
             if (!conversations[otherUser]) {
                 const user = await db.collection("users").doc(otherUser).get();
-                conversations[otherUser] = { messages: [], lastMessage: msg.timestamp, unreadCount: 0, ppUrl: user.data().ppUrl, pseudo: user.data().pseudo };
+                conversations[otherUser] = { messages: [], lastMessage: null, unreadCount: 0, ppUrl: user.data().ppUrl, pseudo: user.data().pseudo };
             }
             if (!alreadyExists(msg, conversations[otherUser].messages)){
                 conversations[otherUser].messages.push(msg);
-                conversations[otherUser].lastMessage = msg.timestamp;    
+                conversations[otherUser].lastMessage = { "seconds": msg.timestamp.seconds ?? msg.timestamp._seconds, "content": msg.content };    
                 if (isUnread) {
                     conversations[otherUser].unreadCount++;
                 }
