@@ -26,7 +26,7 @@
         <div class="messages">
         </div>
         <div class="chat-input">
-            <input type="text" placeholder="Écrire un message..." id="textMessage">
+            <textarea placeholder="Écrire un message..." id="textMessage"></textarea>
             <button>&#10148;</button>
         </div>
     </div>
@@ -125,6 +125,7 @@
                     c.style.setProperty("--unread", 0);
                     document.body.id = "right";
                     openChat(contact);
+                    textMessage.focus();
                     messagesZone.scrollTop = messagesZone.scrollHeight;
                 });
                 contactList.appendChild(c);
@@ -247,7 +248,7 @@
         }
     
         let sendingMessage = false;
-        document.querySelector(".chat-input button").addEventListener("click", async () =>{        
+        async function sendMessage(){
             if (sendingMessage) return;
             sendingMessage = true;
 
@@ -281,7 +282,21 @@
                 openChat(receiverMail);
                 textMessage.value = "";
             }
+            textMessage.focus();
+            messagesZone.scrollTop = messagesZone.scrollHeight;
             sendingMessage = false;
+        }
+        document.querySelector(".chat-input button").addEventListener("click", sendMessage);
+        textMessage.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                if (event.shiftKey) {
+                    const cursorPosition = textMessage.selectionStart;
+                    textMessage.value = textMessage.value.substring(0, cursorPosition) + '\n' + textMessage.value.substring(cursorPosition);
+                    textMessage.selectionStart = textMessage.selectionEnd = cursorPosition + 1;
+                } else
+                    sendMessage();
+            }
         });
     </script>
 </body>
