@@ -104,11 +104,34 @@
             return JSON.parse(localStorage.getItem("user"));
         }
 
-        function isDateInLast7Days(date) {
-            const now = new Date(); // Date actuelle
-            const sevenDaysAgo = new Date(); // Date il y a 7 jours
-            sevenDaysAgo.setDate(now.getDate() - 7);
-            return date >= sevenDaysAgo;
+        function isDateInLastDays(date, nbDays) {
+            const today = new Date();
+            const pastDate = new Date();
+            pastDate.setDate(today.getDate() - nbDays);
+            
+            return date >= pastDate;
+        }
+
+        function getFormattedDateLabel(date) {
+            const today = new Date();
+            const messageDate = new Date(date);
+            today.setHours(0, 0, 0, 0);
+            messageDate.setHours(0, 0, 0, 0);
+
+            if (messageDate.getTime() === today.getTime())
+                return "Aujourd'hui";
+
+            const yesterday = new Date();
+            yesterday.setDate(today.getDate() - 1);
+            yesterday.setHours(0, 0, 0, 0);
+
+            if (messageDate.getTime() === yesterday.getTime())
+                return "Hier";
+
+            if (isDateInLastDays(messageDate, 6))
+                return DAYS[messageDate.getDay()];
+
+            return messageDate.toLocaleDateString("fr-FR");
         }
 
         async function markMessagesAsRead(contact) {
@@ -282,10 +305,10 @@
                 let time = msg.timestamp.seconds ?? msg.timestamp._seconds;
                 let msgDate = new Date(time * 1000);
                 let msgHour = msgDate.toLocaleTimeString("fr-FR").slice(0, 5);
-                let messageDate = msgDate.toLocaleDateString("fr-FR"); // "13/02/2025"
+                let messageDate = msgDate.toLocaleDateString("fr-FR");
 
                 if (messageDate !== date){
-                    messagesZone.innerHTML += `<br><hr><p>${isDateInLast7Days(msgDate) ? DAYS[msgDate.getDay()] : messageDate}</p>`
+                    messagesZone.innerHTML += `<br><hr><p>${getFormattedDateLabel(msgDate)}</p>`
                     date = messageDate;
                 }
                 const messageElement = document.createElement("div");
