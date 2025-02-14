@@ -46,7 +46,6 @@
         <script type="module">
             import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
             import { getAuth, setPersistence, browserLocalPersistence, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendEmailVerification } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-            import { getMessaging, getToken } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging.js";
 
             const firebaseConfig = {
                 apiKey: "AIzaSyDwRreHnfABpGF2x6tN4wHe6VZUE_nRun4",
@@ -146,9 +145,6 @@
                                     });
                             }
                             else{
-                                // const fcmToken = requestFCMToken();
-
-                                // if (!fcmToken) return;
                                 const user = await fetch("https://getuser-b2lv2k7uwq-uc.a.run.app", {
                                     "method": "POST",
                                     "headers": { "Content-Type" : "application/json" },
@@ -173,27 +169,6 @@
                     );
                 }
             }));    
-
-            async function requestFCMToken() {
-                try {
-                    const permission = await Notification.requestPermission();
-
-                    if (permission === "granted") {
-                        console.log("Permission accordée pour les notifications");
-
-                        const token = await getToken(getMessaging(app), { vapidKey: "BFoG8P5q8LGqsRqmaqnCHv2pHZy5Av9NzERqNfxJU6_W4-5ySf2qZCS-6nG1jUemtlzw2-NPiRnz5_KaezAr1PY" });
-                        if (token && JSON.stringify(token) !== "{}")
-                            return token;
-                        else
-                            throw new Error();
-                    } else
-                        throw new Error();
-                } catch (error) {
-                    console.error("Erreur lors de la demande de permission ou récupération du token :", error);
-                    alert("Vous ne recevrez pas de notification de StanJapap");
-                    return null;
-                }
-            }
         </script>    
     </body>
 </html>

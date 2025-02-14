@@ -49,7 +49,7 @@ body#right{
     background: none;
     cursor: pointer;
 }
-.search-bar {
+#search-bar {
     padding: 10px;
     background: rgba(255, 255, 255, 0.2);
     border: none;
@@ -75,7 +75,7 @@ body#right{
     }
 }
 .contact:not(#opened)::after{
-    content: "3";
+    content: var(--unread);
     width: 20px;
     height: 20px;
     border-radius: 50%;

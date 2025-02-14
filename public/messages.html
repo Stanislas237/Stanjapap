@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>- StanJapap</title>
+    <title>StanJapap</title>
     <link rel="stylesheet" href="styles/messages.css">
 </head>
 <body id="left">
@@ -11,11 +11,11 @@
         <div class="sidebar-header">
             <h2>Discussions</h2>
             <div class="sidebar-buttons">
-                <button>➕</button>
+                <!-- <button>➕</button> -->
                 <button>👤</button>
             </div>
         </div>
-        <input type="text" class="search-bar" placeholder="Rechercher...">
+        <input type="text" id="search-bar" placeholder="Rechercher...">
         <div class="contacts">
         </div>
     </div>
@@ -31,6 +31,8 @@
         </div>
     </div>
     <script type="module">
+        document.title = getUser().pseudo + " - StanJapap";
+
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, collection, query, where, getDocs, updateDoc, orderBy, onSnapshot, Timestamp, startAt } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
@@ -58,6 +60,7 @@
         const chatContainer = document.querySelector(".chat-container");
         const messagesZone = document.querySelector(".messages");
         const textMessage = document.querySelector("#textMessage");
+        const searchText = document.querySelector("#search-bar");
         const request = await fetch("https://getfriends-b2lv2k7uwq-uc.a.run.app", {
             method: "POST",
             headers: { 
@@ -74,10 +77,22 @@
             listenForNewMessages(getUser().email);
             listenForReadReceipts(getUser().email);
         }
+        else if (request.status === 401){
+            console.log("Utilisateur non connecté.");
+            window.location.href = "/";
+        }
 
 
         function getUser(){
             return JSON.parse(localStorage.getItem("user"));
+        }
+
+        const DAYS = [ "Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
+        function isDateInLast7Days(date) {
+            const now = new Date(); // Date actuelle
+            const sevenDaysAgo = new Date(); // Date il y a 7 jours
+            sevenDaysAgo.setDate(now.getDate() - 7);
+            return date >= sevenDaysAgo;
         }
 
         async function markMessagesAsRead(contact) {
@@ -104,11 +119,12 @@
             }
         }
 
-        function renderContactList() {
+        function renderContactList(conversations = null) {
             let contactList = document.querySelector(".contacts");
             contactList.innerHTML = ""; // Réinitialiser
 
-            let conversations = JSON.parse(localStorage.getItem("conversations")) ?? {};
+            if (!conversations)
+                conversations = JSON.parse(localStorage.getItem("conversations")) ?? {};
 
             conversations = Object.entries(conversations)
             .sort(([, a], [, b]) => (b.lastMessage?._seconds ?? b.lastMessage?.seconds) - (a.lastMessage?._seconds ?? a.lastMessage?.seconds))
@@ -128,7 +144,7 @@
                         <img src="${conversations[contact].ppUrl}" alt="${conversations[contact].pseudo}">
                         <div class="preview">
                             <span class="nom">${getUser()["aliases"][contact] ?? conversations[contact].pseudo}</span>
-                            <div class="desc">${conversations[contact][lastMessage][content] ?? ""}</div>
+                            <div class="desc">${conversations[contact]["lastMessage"]["content"] ?? ""}</div>
                         </div>
                     </span>
                 `;
@@ -240,12 +256,12 @@
                 let time = msg.timestamp.seconds ?? msg.timestamp._seconds;
                 let msgDate = new Date(time * 1000);
                 let msgHour = msgDate.toLocaleTimeString("fr-FR").slice(0, 5);
-                msgDate = msgDate.toLocaleDateString("fr-FR"); // "13/02/2025"
+                let messageDate = msgDate.toLocaleDateString("fr-FR"); // "13/02/2025"
 
-                if (msgDate !== date){
-                    messagesZone.innerHTML += `<hr><p>${msgDate}</p>`
+                if (messageDate !== date){
+                    messagesZone.innerHTML += `<br><hr><p>${isDateInLast7Days(msgDate) ? DAYS[msgDate.getDay()] : messageDate}</p>`
+                    date = messageDate;
                 }
-                date = msgDate;
                 const messageElement = document.createElement("div");
                 messageElement.classList.add("message", msg.receiverMail === contact ? msg.read ? "seen" : "sent" : "received");
                 messageElement.style.setProperty("--time", `"${msgHour}"`);
@@ -293,6 +309,11 @@
                 openChat(receiverMail);
                 textMessage.value = "";
             }
+            else if (request.status === 401){
+                console.log("Utilisateur non connecté.");
+                window.location.href = "/";
+            }
+
             textMessage.focus();
             messagesZone.scrollTop = messagesZone.scrollHeight;
             sendingMessage = false;
@@ -309,6 +330,27 @@
                     sendMessage();
             }
         });
+    
+        function filterConversations() {
+            const text = searchText.value.trim().toLowerCase();
+
+            if (!text || text === ""){
+                renderContactList();
+                return;
+            }
+
+            const conversations = JSON.parse(localStorage.getItem("conversations")) ?? {};
+            const aliases = getUser().aliases;
+
+            const filteredConversations = Object.fromEntries(Object.entries(conversations).filter(([email, conv]) => {
+                const pseudo = conv.pseudo.toLowerCase() ?? "";
+                const alias = Object.keys(aliases).find(key => aliases[key] === email)?.toLowerCase() ?? "";
+
+                return pseudo.includes(text) || alias.includes(text);
+            }));
+            renderContactList(filteredConversations);
+        }
+        searchText.addEventListener("input", filterConversations);
     </script>
 </body>
 </html>

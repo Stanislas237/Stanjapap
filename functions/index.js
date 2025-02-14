@@ -4,7 +4,6 @@ const admin = require("firebase-admin");
 admin.initializeApp();
 const bucket = admin.storage().bucket();
 const db = admin.firestore();
-const messaging = admin.messaging();
 
 function generateToken() {
     const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -78,7 +77,7 @@ exports.addUser = onRequest(async (req, res) => {
         userRef.set({
             name,
             pseudo,
-            aliases: [],
+            aliases: {},
             ppUrl: "https://as2.ftcdn.net/v2/jpg/01/99/45/45/1000_F_199454533_GIBKQvbUBlu0hl5xhn64pJOHp1nn5W2C.jpg",
             registerDate: admin.firestore.FieldValue.serverTimestamp()
         });
@@ -100,7 +99,7 @@ exports.getUser = onRequest(async (req, res) => {
     else if (req.method !== "POST")
         return res.status(405).json({ "error": "Méthode non autorisée" });
 
-    const {email, fcmToken} = req.body;
+    const {email} = req.body;
     if (!email)
         return res.status(400).json({ "error": "Missing required fields in request body" });
 
@@ -111,7 +110,7 @@ exports.getUser = onRequest(async (req, res) => {
             return res.status(404).json({ "error": "User doesn't exist" });
 
         const token = generateToken();
-        await userRef.update({ "fcmToken": fcmToken ?? null, "token": token });  
+        await userRef.update({ "token": token });  
         
         res.status(200).json({
             "userData": { "pseudo": user.data().pseudo, "aliases": user.data().aliases, "token": token }
@@ -121,36 +120,6 @@ exports.getUser = onRequest(async (req, res) => {
         res.status(500).json({ "error": error });
     }
 });
-
-// exports.readMessages = onRequest(async (req, res) => {
-//     res.set("Access-Control-Allow-Origin", "https://stanjapap.web.app");
-//     res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
-//     res.set("Access-Control-Allow-Headers", "Content-Type");
-
-//     if (req.method === "OPTIONS")
-//         return res.status(204).send("");
-//     else if (req.method !== "POST")
-//         return res.status(405).json({ "error": "Méthode non autorisée" });
-
-//     const { email, contact } = req.body;
-
-//     if (!checkAuth(req, email))
-//         return res.status(401).json({ "error": "Unauthenticated" });
-
-//     try {
-//         db.collection("messages").where("receiverMail", "==", email).where("senderMail", "==", contact)
-//         .where("read", "==", false).get().then(snapshot => {
-//             snapshot.forEach(doc => {
-//                 doc.ref.update({ read: true });
-//             });
-//         });
-//         console.log("Messages lus");
-//         return res.status(200).send("");
-//     } catch (error) {
-//         console.error("Error fetching messages:", error);
-//         return res.status(500).json({ error: "Internal Server Error" });
-//     }
-// });
 
 exports.getFriends = onRequest(async (req, res) => {
     res.set("Access-Control-Allow-Origin", "https://stanjapap.web.app");
