@@ -45,7 +45,7 @@
         </script>
         <script type="module">
             import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-            import { getAuth, setPersistence, browserLocalPersistence, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendEmailVerification } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+            import { getAuth, browserLocalPersistence, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendEmailVerification } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
             const firebaseConfig = {
                 apiKey: "AIzaSyDwRreHnfABpGF2x6tN4wHe6VZUE_nRun4",
@@ -58,13 +58,6 @@
                
             const app = initializeApp(firebaseConfig);
             const auth = getAuth(app);
-            setPersistence(auth, browserLocalPersistence)
-            .then(() => {
-                console.log("Persistance d'authentification définie avec succès.");
-            })
-            .catch((error) => {
-                console.error("Erreur lors de la définition de la persistance:", error);
-            });
     
             const forms = document.querySelectorAll("form");
     

@@ -393,7 +393,7 @@
 
             const filteredConversations = Object.fromEntries(Object.entries(conversations).filter(([email, conv]) => {
                 const pseudo = conv.pseudo.toLowerCase() ?? "";
-                const alias = Object.keys(aliases).find(key => aliases[key] === email)?.toLowerCase() ?? "";
+                const alias = aliases[email]?.toLowerCase() ?? "";
 
                 return pseudo.includes(text) || alias.includes(text);
             }));

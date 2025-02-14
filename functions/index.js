@@ -1,5 +1,6 @@
 const {onRequest} = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
+const { Buffer } = require("buffer");
 
 admin.initializeApp();
 const bucket = admin.storage().bucket();
@@ -297,43 +298,36 @@ exports.getProfile = onRequest(async (req, res) => {
 exports.updateProfile = onRequest(async (req, res) => {
     res.set("Access-Control-Allow-Origin", "https://stanjapap.web.app");
     res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
-    res.set("Access-Control-Allow-Headers", "Content-Type");
+    res.set("Access-Control-Allow-Headers", "Accept, Content-Type, Authorization");
 
-    if (req.method === "OPTIONS")
-        return res.status(204).send("");
-    else if (req.method !== "POST")
-        return res.status(405).json({ "error": "Méthode non autorisée" });
-    
+    if (req.method === "OPTIONS") return res.status(204).send("");
+    else if (req.method !== "POST") return res.status(405).json({ error: "Méthode non autorisée" });
+
     try {
-        const { email, pseudo, actu, showEmail } = req.body;
-        const file = req.file;
+        const { email, pseudo, actu, showEmail, fileBase64, fileType, fileName } = req.body;
 
-        if (!email || !pseudo || !actu)
-            return res.status(400).json({ error: "Bad Request" });
-    
-        if (!await checkAuth(req, email))
-            return res.status(401).json({ error: "Unauthenticated" });
+        if (!email || !pseudo || !actu) return res.status(400).json({ error: "Données incomplètes" });
+
+        if (!await checkAuth(req, email)) return res.status(401).json({ error: "Unauthenticated" });
 
         const userRef = db.collection("users").doc(email);
-        const updateData = { "pseudo": pseudo, "actu": actu, "showEmail": showEmail === "true" };
+        const updateData = { pseudo, actu, showEmail: showEmail ?? false };
 
-        // Vérifier si une nouvelle photo de profil est envoyée
-        if (file) {
-            const filePath = `profile_pictures/${email}_${Date.now()}.jpg`;
+        // Upload de la photo si présente
+        if (fileBase64 && fileType && fileName) {
+            const filePath = `profile_pictures/${email}`;
             const fileUpload = bucket.file(filePath);
+            const fileBuffer = Buffer.from(fileBase64, "base64");
 
-            await fileUpload.save(file.buffer, { metadata: { contentType: file.mimetype } });
+            await fileUpload.save(fileBuffer, { metadata: { contentType: fileType } });
 
-            // Rendre l'image accessible publiquement
+            // Rendre le fichier public
             await fileUpload.makePublic();
-            const fileUrl = `https://storage.googleapis.com/${bucket.name}/${filePath}`;
-            updateData.ppUrl = fileUrl;
+            updateData.ppUrl = `https://storage.googleapis.com/${bucket.name}/${filePath}`;
         }
 
-        // Mise à jour Firestore
         await userRef.update(updateData);
-
-        return res.status(200).json({ ...updateData });
+        return res.status(200).json(updateData);
     } catch (error) {
         console.error("Erreur :", error);
         return res.status(500).json({ error: "Erreur serveur" });
