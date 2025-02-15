@@ -107,6 +107,7 @@
                     }
                     
                     alias.value = "";
+                    alert("Contact enregistré !");
                     closeAliasPopup();
                 } catch (error) {
                     document.querySelector(".profile-container").innerHTML = "<p>Une erreur s'est produite. Veuillez réessayer ultérieurement.</p>";
@@ -127,7 +128,7 @@
                 location.href = "/";
             document.getElementById("aliasPopup").style.display = "block";
         });
-        document.querySelector(".message-btn").addEventListener("click", closeAliasPopup)
+        document.querySelectorAll(".message-btn")[1].addEventListener("click", closeAliasPopup)
         document.querySelector("#saveAlias").addEventListener("click", saveAlias)
     </script>
 </body>
