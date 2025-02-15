@@ -42,6 +42,9 @@
                 document.querySelector(`.${tab}`).classList.add('active');
                 document.querySelector(`#${tab}-tab`).classList.add('active');
             }
+
+            if (localStorage.hasOwnProperty("user"))
+                location.href = "messages.html";
         </script>
         <script type="module">
             import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";

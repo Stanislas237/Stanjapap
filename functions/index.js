@@ -355,7 +355,7 @@ exports.deleteMessage = onRequest(async (req, res) => {
         if (msg.data().senderMail !== email){
             if (msg.data().receiverMail !== email) return res.status(401).json({ error: "Unauthorized" });
             else{
-                const userRef = db.collection("messages").doc(email);
+                const userRef = db.collection("users").doc(email);
                 const user = await userRef.get();
                 const deletedmessages = user.data().deletedmessages ?? [];
                 deletedmessages.push(id);

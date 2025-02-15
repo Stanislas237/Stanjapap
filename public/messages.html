@@ -9,7 +9,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Dancing+Script&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles/messages.css">
 </head>
-<body id="left">
+<body id="left" onload="addState();">
+    <div id="init">Cliquez pour ouvrir votre messagerie</div>
     <div class="sidebar">
         <div class="sidebar-header">
             <h2>Discussions</h2>
@@ -44,601 +45,616 @@
             </div>
         </div>
     </div>
-    <script type="module">
-        let write_to = null;
-        if (localStorage.hasOwnProperty("WRITE_TO")){
-            write_to = localStorage.getItem("WRITE_TO");
-            localStorage.removeItem("WRITE_TO");
+    <script>
+        function addState() {
+            history.pushState(null, '', location.href);
         }
 
-        window.addEventListener('beforeunload', function(event) {
-            event.preventDefault();
-            event.returnValue = '';
-            return '';
+        window.addEventListener('popstate', function(event) {
+            history.go(1);
         });
-        document.addEventListener('contextmenu', (e) => event.preventDefault());
 
-        document.title = getUser().pseudo + " - StanJapap";
-
+        window.addEventListener('load', function() {
+            history.replaceState({ page: 'initial' }, '', location.href);
+            history.pushState(null, '', location.href);
+            history.replaceState({ page: 'new' }, 'New Page', location.href);
+        });
+    </script>
+    <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, collection, query, where, getDocs, updateDoc, orderBy, onSnapshot, Timestamp, startAt } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-        
-        const firebaseConfig = {
-            apiKey: "AIzaSyDwRreHnfABpGF2x6tN4wHe6VZUE_nRun4",
-            authDomain: "stanjapap.firebaseapp.com",
-            databaseURL: "https://stanjapap-default-rtdb.europe-west1.firebasedatabase.app",
-            projectId: "stanjapap",
-            storageBucket: "stanjapap.firebasestorage.app",
-            appId: "1:143091903095:web:bb74bfa8ca7d41120a7472"
-        };
-            
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const auth = getAuth(app);
-        onAuthStateChanged(auth, (user) => {
-            if (!user) {
-                console.log("Utilisateur non connecté.");
-                window.location.href = "/";
+        document.addEventListener("click", async () => {
+            document.querySelector("#init").style.display = "none";
+            document.querySelector(".chat-container").style.display = "flex";
+            document.querySelector(".sidebar").style.display = "flex";
+
+            let write_to = null;
+            if (localStorage.hasOwnProperty("WRITE_TO")){
+                write_to = localStorage.getItem("WRITE_TO");
+                localStorage.removeItem("WRITE_TO");
             }
-        });
-
-        const chatContainer = document.querySelector(".chat-container");
-        const textMessage = document.querySelector("#textMessage");
-        const searchText = document.querySelector("#search-bar");
-        const contactList = document.querySelector(".contacts");
-        const tagMaster = document.querySelector(".tagMaster");
-        const DAYS = [ "Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
-        
-        let messagesZone = document.querySelector(".messages");
-        let contactActive = null;
-        let readReceiptsListener = null;
-        let deletedMessagesListener = null;
-
-        if (!write_to){
-            const request = await fetch("https://getfriends-b2lv2k7uwq-uc.a.run.app", {
-                method: "POST",
-                headers: { 
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${getUser().token}`
-                },
-                body: JSON.stringify({ "email": getUser().email })
-            });
+    
+            document.addEventListener('contextmenu', (e) => event.preventDefault());
+            document.title = getUser().pseudo + " - StanJapap";
+    
             
-            if (request.status === 200){
-                const response = await request.json();
-
-                for (const user in response.conversations) {
-                    response.conversations[user].messages =  response.conversations[user].messages.sort((a, b) => {
-                        const timeA = (a.timestamp?.seconds ?? a.timestamp?._seconds) * 1000 + (a.timestamp?.nanoseconds ?? a.timestamp?._nanoseconds) / 1e6;
-                        const timeB = (b.timestamp?.seconds ?? b.timestamp?._seconds) * 1000 + (b.timestamp?.nanoseconds ?? b.timestamp?._nanoseconds) / 1e6;
-                        return timeA - timeB;
-                    });
-                    
-                    const length = response.conversations[user].messages.length;
-                    if (length > 0){
-                        const lastMessage = response.conversations[user].messages[length - 1];
-                        response.conversations[user].lastMessage = { 
-                            "seconds": lastMessage.timestamp.seconds ?? lastMessage.timestamp._seconds,
-                            "content": lastMessage.content
+            const firebaseConfig = {
+                apiKey: "AIzaSyDwRreHnfABpGF2x6tN4wHe6VZUE_nRun4",
+                authDomain: "stanjapap.firebaseapp.com",
+                databaseURL: "https://stanjapap-default-rtdb.europe-west1.firebasedatabase.app",
+                projectId: "stanjapap",
+                storageBucket: "stanjapap.firebasestorage.app",
+                appId: "1:143091903095:web:bb74bfa8ca7d41120a7472"
+            };
+                
+            const app = initializeApp(firebaseConfig);
+            const db = getFirestore(app);
+            const auth = getAuth(app);
+            onAuthStateChanged(auth, (user) => {
+                if (!user) {
+                    console.log("Utilisateur non connecté.");
+                    window.location.href = "/";
+                }
+            });
+    
+            const chatContainer = document.querySelector(".chat-container");
+            const textMessage = document.querySelector("#textMessage");
+            const searchText = document.querySelector("#search-bar");
+            const contactList = document.querySelector(".contacts");
+            const tagMaster = document.querySelector(".tagMaster");
+            const DAYS = [ "Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
+            
+            let messagesZone = document.querySelector(".messages");
+            let contactActive = null;
+            let readReceiptsListener = null;
+            let deletedMessagesListener = null;
+    
+            if (!write_to){
+                const request = await fetch("https://getfriends-b2lv2k7uwq-uc.a.run.app", {
+                    method: "POST",
+                    headers: { 
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${getUser().token}`
+                    },
+                    body: JSON.stringify({ "email": getUser().email })
+                });
+                
+                if (request.status === 200){
+                    const response = await request.json();
+    
+                    for (const user in response.conversations) {
+                        response.conversations[user].messages =  response.conversations[user].messages.sort((a, b) => {
+                            const timeA = (a.timestamp?.seconds ?? a.timestamp?._seconds) * 1000 + (a.timestamp?.nanoseconds ?? a.timestamp?._nanoseconds) / 1e6;
+                            const timeB = (b.timestamp?.seconds ?? b.timestamp?._seconds) * 1000 + (b.timestamp?.nanoseconds ?? b.timestamp?._nanoseconds) / 1e6;
+                            return timeA - timeB;
+                        });
+                        
+                        const length = response.conversations[user].messages.length;
+                        if (length > 0){
+                            const lastMessage = response.conversations[user].messages[length - 1];
+                            response.conversations[user].lastMessage = { 
+                                "seconds": lastMessage.timestamp.seconds ?? lastMessage.timestamp._seconds,
+                                "content": lastMessage.content
+                            }
                         }
                     }
+                    localStorage.setItem("conversations", JSON.stringify(response.conversations));
+                    renderContactList();
+                    listenForNewMessages();
                 }
-                localStorage.setItem("conversations", JSON.stringify(response.conversations));
+                else if (request.status === 401){
+                    console.log("Utilisateur non connecté.");
+                    window.location.href = "/";
+                }
+            }
+            else{
                 renderContactList();
                 listenForNewMessages();
             }
-            else if (request.status === 401){
-                console.log("Utilisateur non connecté.");
-                window.location.href = "/";
+    
+            function getConv(){
+                return JSON.parse(localStorage.getItem("conversations"));
             }
-        }
-        else{
-            renderContactList();
-            listenForNewMessages();
-        }
-
-        function getConv(){
-            return JSON.parse(localStorage.getItem("conversations"));
-        }
-
-        function getUser(){
-            return JSON.parse(localStorage.getItem("user"));
-        }
-
-        function isDateInLastDays(date, nbDays) {
-            const today = new Date();
-            const pastDate = new Date();
-            pastDate.setDate(today.getDate() - nbDays);
-            
-            return date >= pastDate;
-        }
-
-        function getFormattedDateLabel(date) {
-            const today = new Date();
-            const messageDate = new Date(date);
-            today.setHours(0, 0, 0, 0);
-            messageDate.setHours(0, 0, 0, 0);
-
-            if (messageDate.getTime() === today.getTime())
-                return "Aujourd'hui";
-
-            const yesterday = new Date();
-            yesterday.setDate(today.getDate() - 1);
-            yesterday.setHours(0, 0, 0, 0);
-
-            if (messageDate.getTime() === yesterday.getTime())
-                return "Hier";
-
-            if (isDateInLastDays(messageDate, 6))
-                return DAYS[messageDate.getDay()];
-
-            return messageDate.toLocaleDateString("fr-FR");
-        }
-
-        async function markMessagesAsRead(contact) {
-            const messagesRef = collection(db, "messages");
-            const q = query(
-                messagesRef,
-                where("receiverMail", "==", getUser().email),
-                where("senderMail", "==", contact),
-                where("read", "==", false)
-            );
-
-            try {
-                const snapshot = await getDocs(q);
-                snapshot.forEach(async (doc) => {
-                    await updateDoc(doc.ref, { read: true });
-                });
-
-                let conversations = getConv() ?? {};
-                if (conversations[contact])
-                    conversations[contact].unreadCount = 0;
-                localStorage.setItem("conversations", JSON.stringify(conversations));
-            } catch (error) {
-                console.error("Erreur lors de la mise à jour des messages :", error);
+    
+            function getUser(){
+                return JSON.parse(localStorage.getItem("user"));
             }
-        }
-
-        function renderContactList(conversations = null) {
-            contactList.innerHTML = ""; // Réinitialiser
-
-            if (!conversations)
-                conversations = getConv() ?? {};
-
-            conversations = Object.entries(conversations)
-            .sort(([, a], [, b]) => (b.lastMessage?._seconds ?? b.lastMessage?.seconds) - (a.lastMessage?._seconds ?? a.lastMessage?.seconds))
-            .reduce((acc, [key, value]) => {
-                acc[key] = value;
-                return acc;
-            }, {});
-
-            for (let contact in conversations) {
-                const c = document.createElement("div");
-                if (conversations[contact].unreadCount > 0)
-                    c.style.setProperty("--unread", `"${conversations[contact].unreadCount}"`);
-                c.classList.add("contact");
+    
+            function isDateInLastDays(date, nbDays) {
+                const today = new Date();
+                const pastDate = new Date();
+                pastDate.setDate(today.getDate() - nbDays);
                 
-                c.innerHTML = `
-                    <span>
-                        <img src="${conversations[contact].ppUrl}" alt="${conversations[contact].pseudo}">
-                        <div class="preview">
-                            <span class="nom">${getUser()["aliases"] ? getUser()["aliases"][contact] ?? conversations[contact].pseudo : conversations[contact].pseudo }</span>
-                            <div class="desc">${conversations[contact]["lastMessage"]["content"] ?? ""}</div>
-                        </div>
-                    </span>
-                `;
-                c.addEventListener("click", () => {
-                    if (contactActive)
-                        contactActive.classList.remove("active");
-                    c.classList.add("active");
-                    c.style.setProperty("--unread", 0);
-                    contactActive = c;
-                    document.body.id = "right";
-                    openChat(contact);
-                    textMessage.focus();
-                    textMessage.value = "";
-                    messagesZone.scrollTop = messagesZone.scrollHeight;
-                });
-                contactList.appendChild(c);
-
-                if (write_to && atob(write_to) === contact){
-                    c.click();
-                    write_to = null;
+                return date >= pastDate;
+            }
+    
+            function getFormattedDateLabel(date) {
+                const today = new Date();
+                const messageDate = new Date(date);
+                today.setHours(0, 0, 0, 0);
+                messageDate.setHours(0, 0, 0, 0);
+    
+                if (messageDate.getTime() === today.getTime())
+                    return "Aujourd'hui";
+    
+                const yesterday = new Date();
+                yesterday.setDate(today.getDate() - 1);
+                yesterday.setHours(0, 0, 0, 0);
+    
+                if (messageDate.getTime() === yesterday.getTime())
+                    return "Hier";
+    
+                if (isDateInLastDays(messageDate, 6))
+                    return DAYS[messageDate.getDay()];
+    
+                return messageDate.toLocaleDateString("fr-FR");
+            }
+    
+            async function markMessagesAsRead(contact) {
+                const messagesRef = collection(db, "messages");
+                const q = query(
+                    messagesRef,
+                    where("receiverMail", "==", getUser().email),
+                    where("senderMail", "==", contact),
+                    where("read", "==", false)
+                );
+    
+                try {
+                    const snapshot = await getDocs(q);
+                    snapshot.forEach(async (doc) => {
+                        await updateDoc(doc.ref, { read: true });
+                    });
+    
+                    let conversations = getConv() ?? {};
+                    if (conversations[contact])
+                        conversations[contact].unreadCount = 0;
+                    localStorage.setItem("conversations", JSON.stringify(conversations));
+                } catch (error) {
+                    console.error("Erreur lors de la mise à jour des messages :", error);
                 }
             }
-        }
-
-        function listenForNewMessages() {
-            const messagesRef = collection(db, "messages");
-            const q = query(
-                messagesRef,
-                where("receiverMail", "==", getUser().email),
-                where("senderMail", "not-in", [getUser().email]),
-                orderBy("timestamp"),
-                startAt(Timestamp.now())
-            );
-
-            onSnapshot(q, (snapshot) => {
-                snapshot.docChanges().forEach((change) => {
-                    if (change.type === "added") {
-                        console.log("Nouveau message reçu !");
-                        let newMessage = change.doc.data();
-                        let sender = newMessage.senderMail;
-
-                        let conversations = getConv() ?? {};
-
-                        if (!conversations[sender]) {
-                            conversations[sender] = { messages: [], lastMessage: null, unreadCount: 0 };
-                        }
-                        conversations[sender].messages.push(newMessage);
-                        conversations[sender].lastMessage = { "seconds": newMessage.timestamp.seconds ?? newMessage.timestamp._seconds, "content": newMessage.content };    
-                        conversations[sender].unreadCount++;
-
-                        localStorage.setItem("conversations", JSON.stringify(conversations));
-                        renderContactList();
-
-                        if (chatContainer.getAttribute("data-active") === sender) {
-                            openChat(sender);
-                        }
-                    }
-                });
-            });
-        }
-
-        function listenForReadReceipts(contact) {
-            const messagesRef = collection(db, "messages");
-            const q = query(
-                messagesRef,
-                where("senderMail", "==", getUser().email),
-                where("receiverMail", "==", contact)
-            );
-
-            readReceiptsListener = onSnapshot(q, (snapshot) => {
-                snapshot.docChanges().forEach((change) => {
-                    if (change.type === "modified") {
-                        let updatedMessage = change.doc.data();
-                        let receiver = updatedMessage.receiverMail;
-
-                        // Vérifie si le message a été lu
-                        if (updatedMessage.read) {
-                            let conversations = getConv() ?? {};
-
-                            if (conversations[receiver]) {
-                                let messageIndex = conversations[receiver].messages.findIndex(m => {
-                                    if (m.timestamp.hasOwnProperty("_seconds"))
-                                        return m.timestamp._seconds === updatedMessage.timestamp.seconds
-                                    else
-                                        return m.timestamp.seconds === updatedMessage.timestamp.seconds
-                                });
-
-                                if (messageIndex !== -1)
-                                    conversations[receiver].messages[messageIndex].read = true;
-
-                                localStorage.setItem("conversations", JSON.stringify(conversations));                                
-                                // Met à jour le chat ouvert
-                                if (chatContainer.getAttribute("data-active") === receiver) {
-                                    openChat(receiver);
-                                }
-                            }
-                        }
-                    }
-                });
-            });
-        }
-
-        function listenForDeletedMessages(contact) {
-            const messagesRef = collection(db, "messages");
-            const q = query(
-                messagesRef,
-                where("senderMail", "==", contact),
-                where("receiverMail", "==", getUser().email)
-            );
-
-            deletedMessagesListener = onSnapshot(q, (snapshot) => {
-                snapshot.docChanges().forEach((change) => {
-                    if (change.type === "modified") {
-                        let updatedMessage = change.doc.data();
-
-                        // Vérifie si le message a été lu
-                        if (updatedMessage.content === `<p class="deletedmessage">Ce message a été supprimé</p>`) {
-                            let conversations = getConv() ?? {};
-                            if (conversations[contact]) {
-                                let messageIndex = conversations[contact].messages.findIndex(m => {
-                                    if (m.timestamp.hasOwnProperty("_seconds"))
-                                        return m.timestamp._seconds === updatedMessage.timestamp.seconds
-                                    else
-                                        return m.timestamp.seconds === updatedMessage.timestamp.seconds
-                                });
-
-                                if (messageIndex !== -1)
-                                    conversations[contact].messages[messageIndex].content = `<p class="deletedmessage">Ce message a été supprimé</p>`;
-
-                                localStorage.setItem("conversations", JSON.stringify(conversations));                                
-                                // Met à jour le chat ouvert
-                                if (chatContainer.getAttribute("data-active") === contact) {
-                                    openChat(contact);
-                                }
-                            }
-                        }
-                    }
-                });
-            });
-        }
-
-        function openChat(contact) {
-            const conversations = getConv() ?? {};
-            const header = document.querySelector("#opened");
-            header.innerHTML = `<button id="back">❎</button><img src="${conversations[contact].ppUrl}" alt="${conversations[contact].pseudo}"> ${getUser()["aliases"] ? getUser()["aliases"][contact] ?? conversations[contact].pseudo : conversations[contact].pseudo }`;
-
-            document.querySelector("#back").addEventListener("click", ()=>{
-                chatContainer.setAttribute("data-active", "");
-                renderContactList();
-                document.body.id = "left";
-            })
-
-            const temp = messagesZone.cloneNode(false);
-            messagesZone.replaceWith(temp);
-            messagesZone = temp;
-            
-            const deletedmessages = getUser().deletedmessages;
-            const messages = conversations[contact]?.messages ?? [];
-            let date = null;
-
-            messages.forEach(msg => {
-
-                if (deletedmessages && deletedmessages.includes(msg.id)) return;
-
-                let time = msg.timestamp.seconds ?? msg.timestamp._seconds;
-                let msgDate = new Date(time * 1000);
-                let msgHour = msgDate.toLocaleTimeString("fr-FR").slice(0, 5);
-                let messageDate = msgDate.toLocaleDateString("fr-FR");
-
-                if (messageDate !== date){
-                    messagesZone.innerHTML += `<br><hr><p>${getFormattedDateLabel(msgDate)}</p><br>`
-                    date = messageDate;
-                }
-
-                const messageElement = document.createElement("div");
-                messageElement.id = `m-id-${messages.indexOf(msg)}`;
-                messageElement.classList.add("message", msg.receiverMail === contact ? msg.read ? "seen" : "sent" : "received");
-                messageElement.style.setProperty("--time", `"${msgHour}"`);
-
-                // Affichage du tag
-                if (msg.tag !== ""){                    
-                    const message = messages[+msg.tag];
-                    const sender = message.receiverMail === contact ? "Vous" : getUser()["aliases"] ? getUser()["aliases"][contact] ?? conversations[contact].pseudo : conversations[contact].pseudo;
-                    messageElement.innerHTML = `
-                        <div class="tagdata" id="t-id-${msg.tag}">
-                            <div class="tagsender">${sender}</div>
-                            <div class="tagmessage">${message.content}</div>
-                        </div>
+    
+            function renderContactList(conversations = null) {
+                contactList.innerHTML = ""; // Réinitialiser
+    
+                if (!conversations)
+                    conversations = getConv() ?? {};
+    
+                conversations = Object.entries(conversations)
+                .sort(([, a], [, b]) => (b.lastMessage?._seconds ?? b.lastMessage?.seconds) - (a.lastMessage?._seconds ?? a.lastMessage?.seconds))
+                .reduce((acc, [key, value]) => {
+                    acc[key] = value;
+                    return acc;
+                }, {});
+    
+                for (let contact in conversations) {
+                    const c = document.createElement("div");
+                    if (conversations[contact].unreadCount > 0)
+                        c.style.setProperty("--unread", `"${conversations[contact].unreadCount}"`);
+                    c.classList.add("contact");
+                    
+                    c.innerHTML = `
+                        <span>
+                            <img src="${conversations[contact].ppUrl}" alt="${conversations[contact].pseudo}">
+                            <div class="preview">
+                                <span class="nom">${getUser()["aliases"] ? getUser()["aliases"][contact] ?? conversations[contact].pseudo : conversations[contact].pseudo }</span>
+                                <div class="desc">${conversations[contact]["lastMessage"]["content"] ?? ""}</div>
+                            </div>
+                        </span>
                     `;
+                    c.addEventListener("click", () => {
+                        if (contactActive)
+                            contactActive.classList.remove("active");
+                        c.classList.add("active");
+                        c.style.setProperty("--unread", 0);
+                        contactActive = c;
+                        document.body.id = "right";
+                        openChat(contact);
+                        textMessage.focus();
+                        textMessage.value = "";
+                        messagesZone.scrollTop = messagesZone.scrollHeight;
+                    });
+                    contactList.appendChild(c);
+    
+                    if (write_to && atob(write_to) === contact){
+                        c.click();
+                        write_to = null;
+                    }
                 }
-
-                if (msg.content === `<p class="deletedmessage">Ce message a été supprimé</p>`)
-                    messageElement.innerHTML += msg.content;
-                else{
-                    let p = document.createElement("p");
-                    p.textContent = msg.content.replace(/\n/g, "<br>");
-                    messageElement.appendChild(p);
-                }
-
-                messagesZone.appendChild(messageElement);
-            });
-
-            if (chatContainer.getAttribute("data-active") !== contact){
-                if (readReceiptsListener){
-                    readReceiptsListener();
-                    readReceiptsListener = null;
-                }
+            }
+    
+            function listenForNewMessages() {
+                const messagesRef = collection(db, "messages");
+                const q = query(
+                    messagesRef,
+                    where("receiverMail", "==", getUser().email),
+                    where("senderMail", "not-in", [getUser().email]),
+                    orderBy("timestamp"),
+                    startAt(Timestamp.now())
+                );
+    
+                onSnapshot(q, (snapshot) => {
+                    snapshot.docChanges().forEach((change) => {
+                        if (change.type === "added") {
+                            console.log("Nouveau message reçu !");
+                            let newMessage = change.doc.data();
+                            let sender = newMessage.senderMail;
+    
+                            let conversations = getConv() ?? {};
+    
+                            if (!conversations[sender]) {
+                                conversations[sender] = { messages: [], lastMessage: null, unreadCount: 0 };
+                            }
+                            conversations[sender].messages.push(newMessage);
+                            conversations[sender].lastMessage = { "seconds": newMessage.timestamp.seconds ?? newMessage.timestamp._seconds, "content": newMessage.content };    
+                            conversations[sender].unreadCount++;
+    
+                            localStorage.setItem("conversations", JSON.stringify(conversations));
+                            renderContactList();
+    
+                            if (chatContainer.getAttribute("data-active") === sender) {
+                                openChat(sender);
+                            }
+                        }
+                    });
+                });
+            }
+    
+            function listenForReadReceipts(contact) {
+                const messagesRef = collection(db, "messages");
+                const q = query(
+                    messagesRef,
+                    where("senderMail", "==", getUser().email),
+                    where("receiverMail", "==", contact)
+                );
+    
+                readReceiptsListener = onSnapshot(q, (snapshot) => {
+                    snapshot.docChanges().forEach((change) => {
+                        if (change.type === "modified") {
+                            let updatedMessage = change.doc.data();
+                            let receiver = updatedMessage.receiverMail;
+    
+                            // Vérifie si le message a été lu
+                            if (updatedMessage.read) {
+                                let conversations = getConv() ?? {};
+    
+                                if (conversations[receiver]) {
+                                    let messageIndex = conversations[receiver].messages.findIndex(m => {
+                                        if (m.timestamp.hasOwnProperty("_seconds"))
+                                            return m.timestamp._seconds === updatedMessage.timestamp.seconds
+                                        else
+                                            return m.timestamp.seconds === updatedMessage.timestamp.seconds
+                                    });
+    
+                                    if (messageIndex !== -1)
+                                        conversations[receiver].messages[messageIndex].read = true;
+    
+                                    localStorage.setItem("conversations", JSON.stringify(conversations));                                
+                                    // Met à jour le chat ouvert
+                                    if (chatContainer.getAttribute("data-active") === receiver) {
+                                        openChat(receiver);
+                                    }
+                                }
+                            }
+                        }
+                    });
+                });
+            }
+    
+            function listenForDeletedMessages(contact) {
+                const messagesRef = collection(db, "messages");
+                const q = query(
+                    messagesRef,
+                    where("senderMail", "==", contact),
+                    where("receiverMail", "==", getUser().email)
+                );
+    
+                deletedMessagesListener = onSnapshot(q, (snapshot) => {
+                    snapshot.docChanges().forEach((change) => {
+                        if (change.type === "modified") {
+                            let updatedMessage = change.doc.data();
+    
+                            // Vérifie si le message a été lu
+                            if (updatedMessage.content === `<p class="deletedmessage">Ce message a été supprimé</p>`) {
+                                let conversations = getConv() ?? {};
+                                if (conversations[contact]) {
+                                    let messageIndex = conversations[contact].messages.findIndex(m => {
+                                        if (m.timestamp.hasOwnProperty("_seconds"))
+                                            return m.timestamp._seconds === updatedMessage.timestamp.seconds
+                                        else
+                                            return m.timestamp.seconds === updatedMessage.timestamp.seconds
+                                    });
+    
+                                    if (messageIndex !== -1)
+                                        conversations[contact].messages[messageIndex].content = `<p class="deletedmessage">Ce message a été supprimé</p>`;
+    
+                                    localStorage.setItem("conversations", JSON.stringify(conversations));                                
+                                    // Met à jour le chat ouvert
+                                    if (chatContainer.getAttribute("data-active") === contact) {
+                                        openChat(contact);
+                                    }
+                                }
+                            }
+                        }
+                    });
+                });
+            }
+    
+            function openChat(contact) {
+                const conversations = getConv() ?? {};
+                const header = document.querySelector("#opened");
+                header.innerHTML = `<button id="back">❎</button><img src="${conversations[contact].ppUrl}" alt="${conversations[contact].pseudo}"> ${getUser()["aliases"] ? getUser()["aliases"][contact] ?? conversations[contact].pseudo : conversations[contact].pseudo }`;
+    
+                document.querySelector("#back").addEventListener("click", ()=>{
+                    chatContainer.setAttribute("data-active", "");
+                    renderContactList();
+                    document.body.id = "left";
+                })
+    
+                const temp = messagesZone.cloneNode(false);
+                messagesZone.replaceWith(temp);
+                messagesZone = temp;
                 
-                if (deletedMessagesListener){
-                    deletedMessagesListener();
-                    deletedMessagesListener = null;
+                const deletedmessages = getUser().deletedmessages;
+                const messages = conversations[contact]?.messages ?? [];
+                let date = null;
+    
+                messages.forEach(msg => {
+    
+                    if (deletedmessages && deletedmessages.includes(msg.id)) return;
+    
+                    let time = msg.timestamp.seconds ?? msg.timestamp._seconds;
+                    let msgDate = new Date(time * 1000);
+                    let msgHour = msgDate.toLocaleTimeString("fr-FR").slice(0, 5);
+                    let messageDate = msgDate.toLocaleDateString("fr-FR");
+    
+                    if (messageDate !== date){
+                        messagesZone.innerHTML += `<br><hr><p>${getFormattedDateLabel(msgDate)}</p><br>`
+                        date = messageDate;
+                    }
+    
+                    const messageElement = document.createElement("div");
+                    messageElement.id = `m-id-${messages.indexOf(msg)}`;
+                    messageElement.classList.add("message", msg.receiverMail === contact ? msg.read ? "seen" : "sent" : "received");
+                    messageElement.style.setProperty("--time", `"${msgHour}"`);
+    
+                    // Affichage du tag
+                    if (msg.tag !== ""){                    
+                        const message = messages[+msg.tag];
+                        const sender = message.receiverMail === contact ? "Vous" : getUser()["aliases"] ? getUser()["aliases"][contact] ?? conversations[contact].pseudo : conversations[contact].pseudo;
+                        messageElement.innerHTML = `
+                            <div class="tagdata" id="t-id-${msg.tag}">
+                                <div class="tagsender">${sender}</div>
+                                <div class="tagmessage">${message.content}</div>
+                            </div>
+                        `;
+                    }
+    
+                    if (msg.content === `<p class="deletedmessage">Ce message a été supprimé</p>`)
+                        messageElement.innerHTML += msg.content;
+                    else{
+                        let p = document.createElement("p");
+                        p.textContent = msg.content.replace(/\n/g, "<br>");
+                        messageElement.appendChild(p);
+                    }
+    
+                    messagesZone.appendChild(messageElement);
+                });
+    
+                if (chatContainer.getAttribute("data-active") !== contact){
+                    if (readReceiptsListener){
+                        readReceiptsListener();
+                        readReceiptsListener = null;
+                    }
+                    
+                    if (deletedMessagesListener){
+                        deletedMessagesListener();
+                        deletedMessagesListener = null;
+                    }
+    
+                    if (contact !== getUser().email){
+                        listenForReadReceipts(contact);
+                        listenForDeletedMessages(contact);
+                    }
+                    closeTag();
                 }
-
-                if (contact !== getUser().email){
-                    listenForReadReceipts(contact);
-                    listenForDeletedMessages(contact);
-                }
-                closeTag();
+                chatContainer.setAttribute("data-active", contact);
+                markMessagesAsRead(contact);
+                messagesZone.addEventListener("click", (event) => {
+                    const tagdata = event.target.closest(".tagdata");
+                    if (tagdata){
+                        const id = `#${tagdata.id.replace("t", "m")}`;
+                        location.href = id;
+    
+                        // Effet visuel
+                        messagesZone.querySelector(id)?.classList.toggle("ref");
+                        setTimeout(() => messagesZone.querySelector(id)?.classList.toggle("ref"), 300);
+                        return;
+                    }                
+                    const messageElement = event.target.closest(".message"); 
+                    if (messageElement) {
+                        const msgIndex = messageElement.id.replace("m-id-", "");
+                        showOptions(messageElement, messages[+msgIndex]);
+                    }
+                });
             }
-            chatContainer.setAttribute("data-active", contact);
-            markMessagesAsRead(contact);
-            messagesZone.addEventListener("click", (event) => {
-                const tagdata = event.target.closest(".tagdata");
-                if (tagdata){
-                    const id = `#${tagdata.id.replace("t", "m")}`;
-                    location.href = id;
-
-                    // Effet visuel
-                    messagesZone.querySelector(id).classList.toggle("ref");
-                    setTimeout(() => messagesZone.querySelector(id).classList.toggle("ref"), 300);
-                    return;
-                }                
-                const messageElement = event.target.closest(".message"); 
-                if (messageElement) {
-                    const msgIndex = messageElement.id.replace("m-id-", "");
-                    showOptions(messageElement, messages[+msgIndex]);
-                }
-            });
-        }
-        
-        function showOptions(message, msgData) {
-            const id = message.id.replace("m-id-", "");
-
-            const options = document.createElement("div");
-            options.classList.add("message-options");
-
-            const tagButton = document.createElement("button");
-            tagButton.textContent = "🔄 Répondre";
-            tagButton.addEventListener("click", () => tagMessage(id, msgData));
-            options.appendChild(tagButton);
-
-            const delButton = document.createElement("button");
-            delButton.textContent = msgData.senderMail === getUser().email ? "🚮 Supprimer" : "🚮 Supprimer pour moi";
-            delButton.addEventListener("click", () => deleteMessage(id, msgData));
-            options.appendChild(delButton);
-
-            setTimeout(() => {
-                document.addEventListener("click", () => options.remove(), { once: true });
-            }, 20);
-
-            document.body.appendChild(options);
             
-            const messageRect = message.getBoundingClientRect();
-            const optionsRect = options.getBoundingClientRect();
-            options.style.top = `${messageRect.top + window.scrollY}px`;
-            if (!message.classList.contains("received"))
-                options.style.left = `${messageRect.left - optionsRect.width - 10}px`;
-            else
-                options.style.left = `${messageRect.left + messageRect.width + 10}px`;
-        }
-
-        function tagMessage(messageId, msgData) {
-            if (!messageId || !msgData) {
-                console.log("données absentes");
-                return;
+            function showOptions(message, msgData) {
+                const id = message.id.replace("m-id-", "");
+    
+                const options = document.createElement("div");
+                options.classList.add("message-options");
+    
+                const tagButton = document.createElement("button");
+                tagButton.textContent = "🔄 Répondre";
+                tagButton.addEventListener("click", () => tagMessage(id, msgData));
+                options.appendChild(tagButton);
+    
+                const delButton = document.createElement("button");
+                delButton.textContent = msgData.senderMail === getUser().email ? "🚮 Supprimer" : "🚮 Supprimer pour moi";
+                delButton.addEventListener("click", () => deleteMessage(id, msgData));
+                options.appendChild(delButton);
+    
+                setTimeout(() => {
+                    document.addEventListener("click", () => options.remove(), { once: true });
+                }, 20);
+    
+                document.body.appendChild(options);
+                
+                const messageRect = message.getBoundingClientRect();
+                const optionsRect = options.getBoundingClientRect();
+                options.style.top = `${messageRect.top + window.scrollY}px`;
+                if (!message.classList.contains("received"))
+                    options.style.left = `${messageRect.left - optionsRect.width - 10}px`;
+                else
+                    options.style.left = `${messageRect.left + messageRect.width + 10}px`;
             }
-            chatContainer.setAttribute("tag-message", messageId);
-
-            tagMaster.style.display = "flex";
-            if (msgData.senderMail === getUser().email)
-                tagMaster.querySelector(".tagsender").textContent = "Vous";
-            else
-                tagMaster.querySelector(".tagsender").textContent = getUser()["aliases"] ? getUser()["aliases"][msgData.senderMail] ?? conversations[msgData.senderMail].pseudo : conversations[msgData.senderMail].pseudo;
-            tagMaster.querySelector(".tagmessage").textContent = msgData.content;
-        }
-
-        async function deleteMessage(msgId, msgData) {
-            closeTag();
-            try {
-                const request = await fetch("https://deleteMessage-b2lv2k7uwq-uc.a.run.app", {
+    
+            function tagMessage(messageId, msgData) {
+                if (!messageId || !msgData) {
+                    console.log("données absentes");
+                    return;
+                }
+                chatContainer.setAttribute("tag-message", messageId);
+    
+                tagMaster.style.display = "flex";
+                if (msgData.senderMail === getUser().email)
+                    tagMaster.querySelector(".tagsender").textContent = "Vous";
+                else
+                    tagMaster.querySelector(".tagsender").textContent = getUser()["aliases"] ? getUser()["aliases"][msgData.senderMail] ?? conversations[msgData.senderMail].pseudo : conversations[msgData.senderMail].pseudo;
+                tagMaster.querySelector(".tagmessage").textContent = msgData.content;
+            }
+    
+            async function deleteMessage(msgId, msgData) {
+                closeTag();
+                try {
+                    const request = await fetch("https://deleteMessage-b2lv2k7uwq-uc.a.run.app", {
+                        "method": "POST",
+                        "headers": {
+                            "Authorization": `Bearer ${getUser().token}`,
+                            "Content-Type": "application/json"
+                        },
+                        "body": JSON.stringify({ "email": getUser().email, "id": msgData.id })
+                    });
+                    if (request.status === 200){
+                        const result = await request.json();
+                        const receiverMail = chatContainer.getAttribute("data-active");
+    
+                        if (receiverMail) {                        
+                            if (result.content){
+                                const conversations = getConv();
+                                conversations[receiverMail].messages[msgId].content = result.content;
+                                conversations[receiverMail].messages[msgId].tag = "";
+                                localStorage.setItem("conversations", JSON.stringify(conversations));
+                            } else if (result.deletedmessages){
+                                const user = getUser();
+                                user.deletedmessages = result.deletedmessages;
+                                localStorage.setItem("user", JSON.stringify(user));
+                            }
+                            else return;
+                            openChat(receiverMail);
+                        }
+                    } else if (request.status === 401)
+                        location.href = "/";                
+                } catch (error) {
+                    console.error("Erreur lors de la suppression du message : " + error);
+                }
+            }
+    
+            function closeTag(){
+                const tag = chatContainer.getAttribute("tag-message");
+                if (tag === "none") return;
+                chatContainer.setAttribute("tag-message", "none");
+                tagMaster.style.display = "none";
+            }
+    
+            let sendingMessage = false;
+            async function sendMessage(){
+                if (sendingMessage) return;
+                sendingMessage = true;
+    
+                const receiverMail = chatContainer.getAttribute("data-active");
+                const tag = chatContainer.getAttribute("tag-message");
+                const messageToSend = textMessage.value.trim();
+    
+                closeTag();
+                if (!receiverMail || receiverMail === "" || !messageToSend || messageToSend === ""){
+                    sendingMessage = false;
+                    return;
+                }
+    
+                const request = await fetch("https://sendmessage-b2lv2k7uwq-uc.a.run.app", {
                     "method": "POST",
                     "headers": {
-                        "Authorization": `Bearer ${getUser().token}`,
-                        "Content-Type": "application/json"
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${getUser().token}`
                     },
-                    "body": JSON.stringify({ "email": getUser().email, "id": msgData.id })
+                    "body": JSON.stringify({ "senderMail": getUser().email, "receiverMail": receiverMail, "content": messageToSend, "tag": tag === "none" ? "" : tag })
                 });
                 if (request.status === 200){
-                    const result = await request.json();
-                    const receiverMail = chatContainer.getAttribute("data-active");
-
-                    if (receiverMail) {                        
-                        if (result.content){
-                            const conversations = getConv();
-                            conversations[receiverMail].messages[msgId].content = result.content;
-                            conversations[receiverMail].messages[msgId].tag = "";
-                            localStorage.setItem("conversations", JSON.stringify(conversations));
-                        } else if (result.deletedmessages){
-                            const user = getUser();
-                            user.deletedmessages = result.deletedmessages;
-                            localStorage.setItem("user", JSON.stringify(user));
-                        }
-                        else return;
-                        openChat(receiverMail);
-                    }
-                } else if (request.status === 401)
-                    location.href = "/";                
-            } catch (error) {
-                console.error("Erreur lors de la suppression du message : " + error);
-            }
-        }
-
-        function closeTag(){
-            const tag = chatContainer.getAttribute("tag-message");
-            if (tag === "none") return;
-            chatContainer.setAttribute("tag-message", "none");
-            tagMaster.style.display = "none";
-        }
-
-        let sendingMessage = false;
-        async function sendMessage(){
-            if (sendingMessage) return;
-            sendingMessage = true;
-
-            const receiverMail = chatContainer.getAttribute("data-active");
-            const tag = chatContainer.getAttribute("tag-message");
-            const messageToSend = textMessage.value.trim();
-
-            closeTag();
-            if (!receiverMail || receiverMail === "" || !messageToSend || messageToSend === ""){
-                sendingMessage = false;
-                return;
-            }
-
-            const request = await fetch("https://sendmessage-b2lv2k7uwq-uc.a.run.app", {
-                "method": "POST",
-                "headers": {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${getUser().token}`
-                },
-                "body": JSON.stringify({ "senderMail": getUser().email, "receiverMail": receiverMail, "content": messageToSend, "tag": tag === "none" ? "" : tag })
-            });
-            if (request.status === 200){
-                const message = (await request.json()).message;
-
-                let conversations = getConv() ?? {};                        
-                if (!conversations[receiverMail]) {
-                    conversations[receiverMail] = { messages: [], lastMessage: null, unreadCount: 0 };
-                }
-                conversations[receiverMail].messages.push(message);
-                conversations[receiverMail].lastMessage = { "seconds": message.timestamp.seconds ?? message.timestamp._seconds, "content": message.content };    
-                
-                localStorage.setItem("conversations", JSON.stringify(conversations));
-                renderContactList();
-                openChat(receiverMail);
-                textMessage.value = "";
-            }
-            else if (request.status === 401){
-                console.log("Utilisateur non connecté.");
-                window.location.href = "/";
-            }
-
-            textMessage.focus();
-            messagesZone.scrollTop = messagesZone.scrollHeight;
-            sendingMessage = false;
-        }
-        document.querySelector(".chat-input button").addEventListener("click", sendMessage);
-        textMessage.addEventListener('keydown', function(event) {
-            if (event.key === 'Enter') {
-                event.preventDefault();
-                if (event.shiftKey) {
-                    const cursorPosition = textMessage.selectionStart;
-                    textMessage.value = textMessage.value.substring(0, cursorPosition) + '\n' + textMessage.value.substring(cursorPosition);
-                    textMessage.selectionStart = textMessage.selectionEnd = cursorPosition + 1;
-                } else
-                    sendMessage();
-            }
-        });
+                    const message = (await request.json()).message;
     
-        function filterConversations() {
-            const text = searchText.value.trim().toLowerCase();
-
-            if (!text || text === ""){
-                renderContactList();
-                return;
+                    let conversations = getConv() ?? {};                        
+                    if (!conversations[receiverMail]) {
+                        conversations[receiverMail] = { messages: [], lastMessage: null, unreadCount: 0 };
+                    }
+                    conversations[receiverMail].messages.push(message);
+                    conversations[receiverMail].lastMessage = { "seconds": message.timestamp.seconds ?? message.timestamp._seconds, "content": message.content };    
+                    
+                    localStorage.setItem("conversations", JSON.stringify(conversations));
+                    renderContactList();
+                    openChat(receiverMail);
+                    textMessage.value = "";
+                }
+                else if (request.status === 401){
+                    console.log("Utilisateur non connecté.");
+                    window.location.href = "/";
+                }
+    
+                textMessage.focus();
+                messagesZone.scrollTop = messagesZone.scrollHeight;
+                sendingMessage = false;
             }
-
-            const conversations = getConv() ?? {};
-            const aliases = getUser().aliases;
-
-            const filteredConversations = Object.fromEntries(Object.entries(conversations).filter(([email, conv]) => {
-                const pseudo = conv.pseudo.toLowerCase() ?? "";
-                const alias = aliases ? aliases[email]?.toLowerCase() ?? "" : "";
-
-                return pseudo.includes(text) || alias.includes(text);
-            }));
-            renderContactList(filteredConversations);
-        }
-        searchText.addEventListener("input", filterConversations);
+            document.querySelector(".chat-input button").addEventListener("click", sendMessage);
+            textMessage.addEventListener('keydown', function(event) {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    if (event.shiftKey) {
+                        const cursorPosition = textMessage.selectionStart;
+                        textMessage.value = textMessage.value.substring(0, cursorPosition) + '\n' + textMessage.value.substring(cursorPosition);
+                        textMessage.selectionStart = textMessage.selectionEnd = cursorPosition + 1;
+                    } else
+                        sendMessage();
+                }
+            });
         
-        document.querySelector("#myProfile").addEventListener("click", () => location.href = "profil.html");
-        
-        document.querySelector("#close-tag").addEventListener("click", closeTag);
+            function filterConversations() {
+                const text = searchText.value.trim().toLowerCase();
+    
+                if (!text || text === ""){
+                    renderContactList();
+                    return;
+                }
+    
+                const conversations = getConv() ?? {};
+                const aliases = getUser().aliases;
+    
+                const filteredConversations = Object.fromEntries(Object.entries(conversations).filter(([email, conv]) => {
+                    const pseudo = conv.pseudo.toLowerCase() ?? "";
+                    const alias = aliases ? aliases[email]?.toLowerCase() ?? "" : "";
+    
+                    return pseudo.includes(text) || alias.includes(text);
+                }));
+                renderContactList(filteredConversations);
+            }
+            searchText.addEventListener("input", filterConversations);
+            
+            document.querySelector("#myProfile").addEventListener("click", () => location.href = "profil.html");
+            
+            document.querySelector("#close-tag").addEventListener("click", closeTag);
+        }, { once: true })
     </script>
 </body>
 </html>
