@@ -61,6 +61,8 @@
             document.querySelector("#actu").textContent = profile.actu;
             document.querySelector("#email").textContent = profile.email ?? "Cet utilisateur a caché son email";
             document.querySelector(".message-btn").addEventListener("click", () => {
+                if (!localStorage.hasOwnProperty("user"))
+                    location.href = "/";
                 let conversations = JSON.parse(localStorage.getItem("conversations")) ?? {};
                 if (!conversations.hasOwnProperty(atob(encodedUserId))){
                     conversations[atob(encodedUserId)] = { messages: [], lastMessage: { "seconds": Math.floor(Date.now() / 1000), "content": "" }, unreadCount: 0, ppUrl: profile.ppUrl, pseudo: profile.pseudo };
@@ -77,6 +79,9 @@
 
         let saving = false;
         async function saveAlias() {
+            if (!localStorage.hasOwnProperty("user"))
+                location.href = "/";
+
             if (saving) return;
             saving = true;
 
@@ -117,7 +122,11 @@
             document.getElementById("aliasPopup").style.display = "none";
         }
 
-        document.querySelector(".save-alias-btn").addEventListener("click", () => document.getElementById("aliasPopup").style.display = "block");
+        document.querySelector(".save-alias-btn").addEventListener("click", () => {
+            if (!localStorage.hasOwnProperty("user"))
+                location.href = "/";
+            document.getElementById("aliasPopup").style.display = "block";
+        });
         document.querySelector(".message-btn").addEventListener("click", closeAliasPopup)
         document.querySelector("#saveAlias").addEventListener("click", saveAlias)
     </script>
