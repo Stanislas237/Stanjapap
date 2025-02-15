@@ -146,7 +146,7 @@
                     listenForNewMessages();
                 }
                 else if (request.status === 401){
-                    console.log("Utilisateur non connecté.");
+                    localStorage.removeItem("user");
                     window.location.href = "/";
                 }
             }
@@ -437,7 +437,7 @@
                         messageElement.innerHTML += msg.content;
                     else{
                         let p = document.createElement("p");
-                        p.textContent = msg.content.replace(/\n/g, "<br>");
+                        p.textContent = msg.content;
                         messageElement.appendChild(p);
                     }
     

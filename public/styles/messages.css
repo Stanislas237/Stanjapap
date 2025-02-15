@@ -377,6 +377,23 @@ textarea::-webkit-scrollbar {
         --left: none;
         --right: flex;
         --init: none;
+    }
+    .message-options{
+        width: 90px !important;
+        min-height: 100px !important;
+        padding: 5px !important;
+    
+        button{
+            width: 100% !important;
+            border: none !important;
+            background-color: transparent !important;
+            font-size: smaller !important;
+            font-family: "Dancing Script", serif !important;
+            font-optical-sizing: auto !important;
+            font-weight: 400 !important;
+            font-style: normal !important;
+            cursor: pointer !important;
+        }
     }    
 }
 @media (min-width: 769px) {
