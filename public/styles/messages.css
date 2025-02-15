@@ -25,7 +25,8 @@ body#left{
     height: 100%;
     text-align: justify;
     justify-content: center;
-    align-items: center;
+    align-items: baseline;
+    padding-top: 40px;
     white-space: pre-wrap;
     word-break: keep-all;
     font-family: "Dancing Script", serif;
@@ -33,6 +34,8 @@ body#left{
     font-weight: 700;
     font-style: normal;
     font-size: x-large;
+    background: url("../img/banner-h.png") no-repeat;
+    background-size: 100% 100%;
 }
 .sidebar {
     width: 30%;
@@ -362,6 +365,9 @@ textarea::-webkit-scrollbar {
     font-style: normal;
 }
 @media (max-width: 768px) {
+    #init{
+        background-image: url("../img/banner-v.png");
+    }    
     .sidebar {
         width: 100%;
         display: var(--left);
