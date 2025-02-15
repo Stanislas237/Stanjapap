@@ -65,6 +65,9 @@
         import { getFirestore, collection, query, where, getDocs, updateDoc, orderBy, onSnapshot, Timestamp, startAt } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
+        if (!localStorage.hasOwnProperty("user"))
+            location.href = "/";
+
         document.addEventListener("click", async () => {
             document.body.id = "left";
 
