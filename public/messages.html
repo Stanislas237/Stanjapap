@@ -9,7 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Dancing+Script&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles/messages.css">
 </head>
-<body id="left" onload="addState();">
+<body onload="addState();">
     <div id="init">Cliquez pour ouvrir votre messagerie</div>
     <div class="sidebar">
         <div class="sidebar-header">
@@ -23,7 +23,7 @@
         <div class="contacts">
         </div>
     </div>
-    <div class="chat-container" tag-message="none">
+    <div class="chat-container" tag-message="none" data-active="none">
         <div class="chat-header">
             <div class="contact" id="opened"><button id="back">❎</button><img src="" alt=""></div>
         </div>
@@ -57,7 +57,7 @@
         window.addEventListener('load', function() {
             history.replaceState({ page: 'initial' }, '', location.href);
             history.pushState(null, '', location.href);
-            history.replaceState({ page: 'new' }, 'New Page', location.href);
+            history.replaceState({ page: 'new' }, '', location.href);
         });
     </script>
     <script type="module">
@@ -66,9 +66,7 @@
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
         document.addEventListener("click", async () => {
-            document.querySelector("#init").style.display = "none";
-            document.querySelector(".chat-container").style.display = "flex";
-            document.querySelector(".sidebar").style.display = "flex";
+            document.body.id = "left";
 
             let write_to = null;
             if (localStorage.hasOwnProperty("WRITE_TO")){
@@ -388,7 +386,7 @@
                 header.innerHTML = `<button id="back">❎</button><img src="${conversations[contact].ppUrl}" alt="${conversations[contact].pseudo}"> ${getUser()["aliases"] ? getUser()["aliases"][contact] ?? conversations[contact].pseudo : conversations[contact].pseudo }`;
     
                 document.querySelector("#back").addEventListener("click", ()=>{
-                    chatContainer.setAttribute("data-active", "");
+                    chatContainer.setAttribute("data-active", "none");
                     renderContactList();
                     document.body.id = "left";
                 })
@@ -542,7 +540,7 @@
                         const result = await request.json();
                         const receiverMail = chatContainer.getAttribute("data-active");
     
-                        if (receiverMail) {                        
+                        if (receiverMail && receiverMail !== "none") {
                             if (result.content){
                                 const conversations = getConv();
                                 conversations[receiverMail].messages[msgId].content = result.content;
@@ -580,7 +578,7 @@
                 const messageToSend = textMessage.value.trim();
     
                 closeTag();
-                if (!receiverMail || receiverMail === "" || !messageToSend || messageToSend === ""){
+                if (!receiverMail || receiverMail === "none" || !messageToSend || messageToSend === ""){
                     sendingMessage = false;
                     return;
                 }

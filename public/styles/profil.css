@@ -77,6 +77,9 @@ body {
     margin-left: 10px;
     cursor: pointer;
 }
+textarea::-webkit-scrollbar {
+    display: none;
+}
 .toggle {
     display: flex;
     align-items: center;

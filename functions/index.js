@@ -121,6 +121,7 @@ exports.getUser = onRequest(async (req, res) => {
                 "actu": user.data().actu,
                 "ppUrl": user.data().ppUrl,
                 "showEmail": user.data().showEmail,
+                "deletedmessages": user.data().deletedmessages ?? [],
                 "token": token 
             }
         });
