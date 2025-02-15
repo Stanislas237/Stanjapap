@@ -103,9 +103,11 @@ body#right{
             height: 100%;
             
             .nom{
-                font-family: "Tempus Sans ITC";
+                font-family: "Dancing Script", serif;
+                font-optical-sizing: auto;
+                font-weight: 400;
+                font-style: normal;
                 font-size: large;
-                font-weight: 900;
                 width: 100%;
                 white-space: nowrap;
                 overflow: hidden;
@@ -114,6 +116,7 @@ body#right{
             .desc{
                 width: 100%;
                 font-style: italic;
+                font-size: medium;
                 overflow: hidden;
                 white-space: nowrap;
                 text-overflow: ellipsis;
@@ -163,6 +166,9 @@ hr+p{
     margin: .5px 0;
     max-width: 60%;
     font-size: 14px;
+    text-align: justify;
+    word-break: keep-all;
+    cursor: pointer;
 }
 .message.sent+.message:not(.sent), .message.received+.message:not(.received) {
     margin: 5px 0;
@@ -266,14 +272,17 @@ textarea::-webkit-scrollbar {
     background-color: aliceblue;
     border: 1px solid black;
     color: black;
+    white-space: normal;
     border-radius: 20px;
 }
 .tagsender{
     width: 100%;
     height: 50%;
-    font-family: "Tempus Sans ITC";
+    font-family: "Dancing Script", serif;
+    font-optical-sizing: auto;
+    font-weight: 400;
+    font-style: normal;
     font-size: small;
-    font-weight: 900;
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
@@ -287,6 +296,9 @@ textarea::-webkit-scrollbar {
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
+}
+.ref{
+    background-color: coral !important;
 }
 .message-options{
     position: fixed;
@@ -315,6 +327,22 @@ textarea::-webkit-scrollbar {
     hr{
         width: 100%;
     }
+}
+.received >.deletedmessage{
+    color: slateblue;
+}
+.seen >.deletedmessage{
+    color: brown;
+}
+.sent >.deletedmessage{
+    color: violet;
+}
+.deletedmessage{
+    font-size: large;
+    font-family: "Dancing Script", serif;
+    font-optical-sizing: auto;
+    font-weight: 400;
+    font-style: normal;
 }
 @media (max-width: 768px) {
     .sidebar {

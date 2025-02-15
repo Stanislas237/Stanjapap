@@ -160,7 +160,8 @@ exports.getFriends = onRequest(async (req, res) => {
         }
 
         // Fonction pour ajouter un message à une conversation
-        const addMessageToConversation = async (msg, isUnread) => {
+        const addMessageToConversation = async (msg, id, isUnread) => {
+            msg.id = id;
             const otherUser = msg.senderMail === email ? msg.receiverMail : msg.senderMail;
             if (!conversations[otherUser]) {
                 const user = await db.collection("users").doc(otherUser).get();
@@ -176,10 +177,10 @@ exports.getFriends = onRequest(async (req, res) => {
 
         // Parcourir les messages envoyés
         for (const doc of messagesSnapshot.docs)
-            await addMessageToConversation(doc.data(), false);
+            await addMessageToConversation(doc.data(), doc.id, false);
         // Parcourir les messages reçus
         for (const doc of receivedSnapshot.docs)
-            await addMessageToConversation(doc.data(), !doc.data().read);
+            await addMessageToConversation(doc.data(), doc.id, !doc.data().read);
 
         return res.status(200).json({ "conversations": conversations});
     } catch (error) {
@@ -327,6 +328,46 @@ exports.updateProfile = onRequest(async (req, res) => {
 
         await userRef.update(updateData);
         return res.status(200).json(updateData);
+    } catch (error) {
+        console.error("Erreur :", error);
+        return res.status(500).json({ error: "Erreur serveur" });
+    }
+});
+
+exports.deleteMessage = onRequest(async (req, res) => {
+    res.set("Access-Control-Allow-Origin", "https://stanjapap.web.app");
+    res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+    res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+
+    if (req.method === "OPTIONS") return res.status(204).send("");
+    else if (req.method !== "POST") return res.status(405).json({ error: "Méthode non autorisée" });
+
+    try {
+        const { email, id } = req.body;
+
+        if (!email || !id) return res.status(400).json({ error: "Données incomplètes" });
+        if (!await checkAuth(req, email)) return res.status(401).json({ error: "Unauthenticated" });
+
+        const msgRef = db.collection("messages").doc(id);
+        const msg = await msgRef.get();
+
+        if (!msg.exists) return res.status(404).json({ error: "Not found" });
+        if (msg.data().senderMail !== email){
+            if (msg.data().receiverMail !== email) return res.status(401).json({ error: "Unauthorized" });
+            else{
+                const userRef = db.collection("messages").doc(email);
+                const user = await userRef.get();
+                const deletedmessages = user.data().deletedmessages ?? [];
+                deletedmessages.push(id);
+                userRef.update({ "deletedmessages": deletedmessages });
+                return res.status(200).json({ "deletedmessages": deletedmessages });
+            }
+        }
+        else{
+            const updateData = { "content": `<p class="deletedmessage">Ce message a été supprimé</p>`, "tag": "" };
+            await msgRef.update(updateData);    
+            return res.status(200).json(updateData);
+        }
     } catch (error) {
         console.error("Erreur :", error);
         return res.status(500).json({ error: "Erreur serveur" });

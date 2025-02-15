@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>StanJapap</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles/messages.css">
 </head>
 <body id="left">
@@ -53,6 +56,7 @@
             event.returnValue = '';
             return '';
         });
+        document.addEventListener('contextmenu', (e) => event.preventDefault());
 
         document.title = getUser().pseudo + " - StanJapap";
 
@@ -81,14 +85,16 @@
         });
 
         const chatContainer = document.querySelector(".chat-container");
-        const messagesZone = document.querySelector(".messages");
         const textMessage = document.querySelector("#textMessage");
         const searchText = document.querySelector("#search-bar");
         const contactList = document.querySelector(".contacts");
         const tagMaster = document.querySelector(".tagMaster");
         const DAYS = [ "Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
-
+        
+        let messagesZone = document.querySelector(".messages");
         let contactActive = null;
+        let readReceiptsListener = null;
+        let deletedMessagesListener = null;
 
         if (!write_to){
             const request = await fetch("https://getfriends-b2lv2k7uwq-uc.a.run.app", {
@@ -121,8 +127,7 @@
                 }
                 localStorage.setItem("conversations", JSON.stringify(response.conversations));
                 renderContactList();
-                listenForNewMessages(getUser().email);
-                listenForReadReceipts(getUser().email);
+                listenForNewMessages();
             }
             else if (request.status === 401){
                 console.log("Utilisateur non connecté.");
@@ -131,8 +136,11 @@
         }
         else{
             renderContactList();
-            listenForNewMessages(getUser().email);
-            listenForReadReceipts(getUser().email);
+            listenForNewMessages();
+        }
+
+        function getConv(){
+            return JSON.parse(localStorage.getItem("conversations"));
         }
 
         function getUser(){
@@ -184,7 +192,7 @@
                     await updateDoc(doc.ref, { read: true });
                 });
 
-                let conversations = JSON.parse(localStorage.getItem("conversations")) ?? {};
+                let conversations = getConv() ?? {};
                 if (conversations[contact])
                     conversations[contact].unreadCount = 0;
                 localStorage.setItem("conversations", JSON.stringify(conversations));
@@ -197,7 +205,7 @@
             contactList.innerHTML = ""; // Réinitialiser
 
             if (!conversations)
-                conversations = JSON.parse(localStorage.getItem("conversations")) ?? {};
+                conversations = getConv() ?? {};
 
             conversations = Object.entries(conversations)
             .sort(([, a], [, b]) => (b.lastMessage?._seconds ?? b.lastMessage?.seconds) - (a.lastMessage?._seconds ?? a.lastMessage?.seconds))
@@ -242,12 +250,12 @@
             }
         }
 
-        function listenForNewMessages(email) {
+        function listenForNewMessages() {
             const messagesRef = collection(db, "messages");
             const q = query(
                 messagesRef,
-                where("receiverMail", "==", email),
-                where("senderMail", "not-in", [email]),
+                where("receiverMail", "==", getUser().email),
+                where("senderMail", "not-in", [getUser().email]),
                 orderBy("timestamp"),
                 startAt(Timestamp.now())
             );
@@ -259,7 +267,7 @@
                         let newMessage = change.doc.data();
                         let sender = newMessage.senderMail;
 
-                        let conversations = JSON.parse(localStorage.getItem("conversations")) ?? {};
+                        let conversations = getConv() ?? {};
 
                         if (!conversations[sender]) {
                             conversations[sender] = { messages: [], lastMessage: null, unreadCount: 0 };
@@ -279,11 +287,15 @@
             });
         }
 
-        function listenForReadReceipts(email) {
+        function listenForReadReceipts(contact) {
             const messagesRef = collection(db, "messages");
-            const q = query(messagesRef, where("senderMail", "==", email)); // Écoute les messages que l'utilisateur a envoyés
+            const q = query(
+                messagesRef,
+                where("senderMail", "==", getUser().email),
+                where("receiverMail", "==", contact)
+            );
 
-            onSnapshot(q, (snapshot) => {
+            readReceiptsListener = onSnapshot(q, (snapshot) => {
                 snapshot.docChanges().forEach((change) => {
                     if (change.type === "modified") {
                         let updatedMessage = change.doc.data();
@@ -291,7 +303,7 @@
 
                         // Vérifie si le message a été lu
                         if (updatedMessage.read) {
-                            let conversations = JSON.parse(localStorage.getItem("conversations")) ?? {};
+                            let conversations = getConv() ?? {};
 
                             if (conversations[receiver]) {
                                 let messageIndex = conversations[receiver].messages.findIndex(m => {
@@ -316,8 +328,47 @@
             });
         }
 
+        function listenForDeletedMessages(contact) {
+            const messagesRef = collection(db, "messages");
+            const q = query(
+                messagesRef,
+                where("senderMail", "==", contact),
+                where("receiverMail", "==", getUser().email)
+            );
+
+            deletedMessagesListener = onSnapshot(q, (snapshot) => {
+                snapshot.docChanges().forEach((change) => {
+                    if (change.type === "modified") {
+                        let updatedMessage = change.doc.data();
+
+                        // Vérifie si le message a été lu
+                        if (updatedMessage.content === `<p class="deletedmessage">Ce message a été supprimé</p>`) {
+                            let conversations = getConv() ?? {};
+                            if (conversations[contact]) {
+                                let messageIndex = conversations[contact].messages.findIndex(m => {
+                                    if (m.timestamp.hasOwnProperty("_seconds"))
+                                        return m.timestamp._seconds === updatedMessage.timestamp.seconds
+                                    else
+                                        return m.timestamp.seconds === updatedMessage.timestamp.seconds
+                                });
+
+                                if (messageIndex !== -1)
+                                    conversations[contact].messages[messageIndex].content = `<p class="deletedmessage">Ce message a été supprimé</p>`;
+
+                                localStorage.setItem("conversations", JSON.stringify(conversations));                                
+                                // Met à jour le chat ouvert
+                                if (chatContainer.getAttribute("data-active") === contact) {
+                                    openChat(contact);
+                                }
+                            }
+                        }
+                    }
+                });
+            });
+        }
+
         function openChat(contact) {
-            let conversations = JSON.parse(localStorage.getItem("conversations")) ?? {};
+            const conversations = getConv() ?? {};
             const header = document.querySelector("#opened");
             header.innerHTML = `<button id="back">❎</button><img src="${conversations[contact].ppUrl}" alt="${conversations[contact].pseudo}"> ${getUser()["aliases"] ? getUser()["aliases"][contact] ?? conversations[contact].pseudo : conversations[contact].pseudo }`;
 
@@ -327,76 +378,108 @@
                 document.body.id = "left";
             })
 
-            messagesZone.innerHTML = ""; // Réinitialiser
-            let messages = conversations[contact]?.messages ?? [];
+            const temp = messagesZone.cloneNode(false);
+            messagesZone.replaceWith(temp);
+            messagesZone = temp;
+            
+            const deletedmessages = getUser().deletedmessages;
+            const messages = conversations[contact]?.messages ?? [];
             let date = null;
 
             messages.forEach(msg => {
-                // Date
+
+                if (deletedmessages && deletedmessages.includes(msg.id)) return;
+
                 let time = msg.timestamp.seconds ?? msg.timestamp._seconds;
                 let msgDate = new Date(time * 1000);
                 let msgHour = msgDate.toLocaleTimeString("fr-FR").slice(0, 5);
                 let messageDate = msgDate.toLocaleDateString("fr-FR");
 
                 if (messageDate !== date){
-                    messagesZone.innerHTML += `<br><hr><p>${getFormattedDateLabel(msgDate)}</p>`
+                    messagesZone.innerHTML += `<br><hr><p>${getFormattedDateLabel(msgDate)}</p><br>`
                     date = messageDate;
                 }
+
                 const messageElement = document.createElement("div");
                 messageElement.id = `m-id-${messages.indexOf(msg)}`;
                 messageElement.classList.add("message", msg.receiverMail === contact ? msg.read ? "seen" : "sent" : "received");
                 messageElement.style.setProperty("--time", `"${msgHour}"`);
 
                 // Affichage du tag
-                if (msg.tag !== ""){
-                    const tagData = document.createElement("div");
-                    tagData.classList.add("tagdata");
-
-                    let conversations = JSON.parse(localStorage.getItem("conversations")) ?? {};
-                    const receiverMail = chatContainer.getAttribute("data-active");
-                    const messageList = conversations[receiverMail]?.messages ?? null;
-
-                    if (messageList) {
-                        const message = messageList[+msg.tag];
-                        const sender = message.receiverMail === receiverMail ? "Vous" : getUser()["aliases"] ? getUser()["aliases"][receiverMail] ?? conversations[receiverMail].pseudo : conversations[receiverMail].pseudo;
-
-                        tagData.innerHTML = `
+                if (msg.tag !== ""){                    
+                    const message = messages[+msg.tag];
+                    const sender = message.receiverMail === contact ? "Vous" : getUser()["aliases"] ? getUser()["aliases"][contact] ?? conversations[contact].pseudo : conversations[contact].pseudo;
+                    messageElement.innerHTML = `
+                        <div class="tagdata" id="t-id-${msg.tag}">
                             <div class="tagsender">${sender}</div>
                             <div class="tagmessage">${message.content}</div>
-                        `;
-
-                        tagData.addEventListener("click", () => location.href = `#m-id-${msg.tag}`);
-                        
-                        messageElement.appendChild(tagData);
-                        chatContainer.setAttribute("tag-message", "none");
-                    }
+                        </div>
+                    `;
                 }
-                
-                messageElement.innerHTML += msg.content;
 
-                messageElement.addEventListener("click", () => showOptions(messageElement, msg.receiverMail === contact));                
+                if (msg.content === `<p class="deletedmessage">Ce message a été supprimé</p>`)
+                    messageElement.innerHTML += msg.content;
+                else{
+                    let p = document.createElement("p");
+                    p.textContent = msg.content.replace(/\n/g, "<br>");
+                    messageElement.appendChild(p);
+                }
+
                 messagesZone.appendChild(messageElement);
             });
-            
+
+            if (chatContainer.getAttribute("data-active") !== contact){
+                if (readReceiptsListener){
+                    readReceiptsListener();
+                    readReceiptsListener = null;
+                }
+                
+                if (deletedMessagesListener){
+                    deletedMessagesListener();
+                    deletedMessagesListener = null;
+                }
+
+                if (contact !== getUser().email){
+                    listenForReadReceipts(contact);
+                    listenForDeletedMessages(contact);
+                }
+                closeTag();
+            }
             chatContainer.setAttribute("data-active", contact);
-            // Marquer les messages comme lus
             markMessagesAsRead(contact);
+            messagesZone.addEventListener("click", (event) => {
+                const tagdata = event.target.closest(".tagdata");
+                if (tagdata){
+                    const id = `#${tagdata.id.replace("t", "m")}`;
+                    location.href = id;
+
+                    // Effet visuel
+                    messagesZone.querySelector(id).classList.toggle("ref");
+                    setTimeout(() => messagesZone.querySelector(id).classList.toggle("ref"), 300);
+                    return;
+                }                
+                const messageElement = event.target.closest(".message"); 
+                if (messageElement) {
+                    const msgIndex = messageElement.id.replace("m-id-", "");
+                    showOptions(messageElement, messages[+msgIndex]);
+                }
+            });
         }
         
-        function showOptions(message, isSender) {
-            const id = message.id.split("m-id-")[1];
+        function showOptions(message, msgData) {
+            const id = message.id.replace("m-id-", "");
 
             const options = document.createElement("div");
             options.classList.add("message-options");
 
             const tagButton = document.createElement("button");
             tagButton.textContent = "🔄 Répondre";
-            tagButton.addEventListener("click", () => tagMessage(id));
+            tagButton.addEventListener("click", () => tagMessage(id, msgData));
             options.appendChild(tagButton);
 
             const delButton = document.createElement("button");
-            delButton.textContent = "🚮 Supprimer";
-            delButton.addEventListener("click", () => tagMessage(id));
+            delButton.textContent = msgData.senderMail === getUser().email ? "🚮 Supprimer" : "🚮 Supprimer pour moi";
+            delButton.addEventListener("click", () => deleteMessage(id, msgData));
             options.appendChild(delButton);
 
             setTimeout(() => {
@@ -408,42 +491,61 @@
             const messageRect = message.getBoundingClientRect();
             const optionsRect = options.getBoundingClientRect();
             options.style.top = `${messageRect.top + window.scrollY}px`;
-            if (isSender)
+            if (!message.classList.contains("received"))
                 options.style.left = `${messageRect.left - optionsRect.width - 10}px`;
             else
                 options.style.left = `${messageRect.left + messageRect.width + 10}px`;
         }
 
-        function tagMessage(messageId) {
-            if (!messageId) {
-                console.log("id absent");
+        function tagMessage(messageId, msgData) {
+            if (!messageId || !msgData) {
+                console.log("données absentes");
                 return;
             }
-
-            const receiverMail = chatContainer.getAttribute("data-active");
-            
-            if (receiverMail === "") {
-                console.log("mail absent");
-                return;
-            }
-
-            let conversations = JSON.parse(localStorage.getItem("conversations"));
-            const messageList = conversations[receiverMail]?.messages;
-
-            if (+messageId >= messageList.length) {
-                console.log("MessageId est trop grand");
-                return;
-            }
-
-            const message = messageList[+messageId];
             chatContainer.setAttribute("tag-message", messageId);
 
             tagMaster.style.display = "flex";
-            if (message.receiverMail === receiverMail)
-                document.querySelector(".tagsender").textContent = "Vous";
+            if (msgData.senderMail === getUser().email)
+                tagMaster.querySelector(".tagsender").textContent = "Vous";
             else
-                document.querySelector(".tagsender").textContent = getUser()["aliases"] ? getUser()["aliases"][receiverMail] ?? conversations[receiverMail].pseudo : conversations[receiverMail].pseudo;
-            document.querySelector(".tagmessage").textContent = message.content;
+                tagMaster.querySelector(".tagsender").textContent = getUser()["aliases"] ? getUser()["aliases"][msgData.senderMail] ?? conversations[msgData.senderMail].pseudo : conversations[msgData.senderMail].pseudo;
+            tagMaster.querySelector(".tagmessage").textContent = msgData.content;
+        }
+
+        async function deleteMessage(msgId, msgData) {
+            closeTag();
+            try {
+                const request = await fetch("https://deleteMessage-b2lv2k7uwq-uc.a.run.app", {
+                    "method": "POST",
+                    "headers": {
+                        "Authorization": `Bearer ${getUser().token}`,
+                        "Content-Type": "application/json"
+                    },
+                    "body": JSON.stringify({ "email": getUser().email, "id": msgData.id })
+                });
+                if (request.status === 200){
+                    const result = await request.json();
+                    const receiverMail = chatContainer.getAttribute("data-active");
+
+                    if (receiverMail) {                        
+                        if (result.content){
+                            const conversations = getConv();
+                            conversations[receiverMail].messages[msgId].content = result.content;
+                            conversations[receiverMail].messages[msgId].tag = "";
+                            localStorage.setItem("conversations", JSON.stringify(conversations));
+                        } else if (result.deletedmessages){
+                            const user = getUser();
+                            user.deletedmessages = result.deletedmessages;
+                            localStorage.setItem("user", JSON.stringify(user));
+                        }
+                        else return;
+                        openChat(receiverMail);
+                    }
+                } else if (request.status === 401)
+                    location.href = "/";                
+            } catch (error) {
+                console.error("Erreur lors de la suppression du message : " + error);
+            }
         }
 
         function closeTag(){
@@ -461,6 +563,8 @@
             const receiverMail = chatContainer.getAttribute("data-active");
             const tag = chatContainer.getAttribute("tag-message");
             const messageToSend = textMessage.value.trim();
+
+            closeTag();
             if (!receiverMail || receiverMail === "" || !messageToSend || messageToSend === ""){
                 sendingMessage = false;
                 return;
@@ -477,7 +581,7 @@
             if (request.status === 200){
                 const message = (await request.json()).message;
 
-                let conversations = JSON.parse(localStorage.getItem("conversations")) ?? {};                        
+                let conversations = getConv() ?? {};                        
                 if (!conversations[receiverMail]) {
                     conversations[receiverMail] = { messages: [], lastMessage: null, unreadCount: 0 };
                 }
@@ -519,7 +623,7 @@
                 return;
             }
 
-            const conversations = JSON.parse(localStorage.getItem("conversations")) ?? {};
+            const conversations = getConv() ?? {};
             const aliases = getUser().aliases;
 
             const filteredConversations = Object.fromEntries(Object.entries(conversations).filter(([email, conv]) => {
