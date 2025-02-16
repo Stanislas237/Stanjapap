@@ -52,6 +52,8 @@
         }
 
         window.addEventListener('popstate', function(event) {
+            if (document.body.id === "right")
+                document.querySelector("#back").click();
             history.go(1);
         });
 
