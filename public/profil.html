@@ -85,16 +85,22 @@
                 reader.readAsDataURL(file);
             }
         });
-        const user = JSON.parse(localStorage.getItem("user")) ?? null;
-        if (!user)
+        if (!localStorage.hasOwnProperty("user"))
             location.href = "/";
+        
+        const user = JSON.parse(localStorage.getItem("user")) ?? null;
 
-        document.querySelector("#profileImage").src = user.ppUrl;
-        document.querySelector("#pseudo").value = user.pseudo;
-        document.querySelector("#actu").value = user.actu;
-        document.querySelector("#email").textContent = user.email;
-        document.querySelector("#show-email").checked = user.showEmail;
-        document.querySelector("#url").textContent = `https://stanjapap.web.app/user.html?u=${btoa(user.email)}`;
+        try {            
+            document.querySelector("#profileImage").src = user.ppUrl;
+            document.querySelector("#pseudo").value = user.pseudo;
+            document.querySelector("#actu").value = user.actu;
+            document.querySelector("#email").textContent = user.email;
+            document.querySelector("#show-email").checked = user.showEmail;
+            document.querySelector("#url").textContent = `https://stanjapap.web.app/user.html?u=${btoa(user.email)}`;
+        } catch (error) {
+            localStorage.removeItem("user");
+            location.href = "/";
+        }
     </script>
     <script type="module">
         let fileImage = document.querySelector("#imageUpload").files[0];
@@ -149,8 +155,11 @@
                     localStorage.setItem("user", JSON.stringify(user));
                     alert("Profil mis à jour !");
                 }
-                else
-                    alert("Erreur");
+                else if (response.status === 401){
+                    localStorage.removeItem("user");
+                    location.href = "/";
+                }
+                else alert("Erreur");
                 uploading = false;
             } catch (error) {
                 uploading = false;

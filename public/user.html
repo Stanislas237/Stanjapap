@@ -99,7 +99,10 @@
                         body: JSON.stringify({ "email": getUser().email, "contact": atob(encodedUserId), "alias": alias.value.trim() })
                     });
                     
-                    if (request.status === 401) location.href = "/";
+                    if (request.status === 401){
+                        localStorage.removeItem("user");
+                        location.href = "/";
+                    }
                     else if (request.status === 200){
                         const aliases = (await request.json()).aliases;
                         const user = getUser();

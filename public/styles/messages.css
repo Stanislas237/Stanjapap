@@ -8,6 +8,7 @@ body {
     display: flex;
     height: 100vh;
     background-color: #e6e9ef;
+    scroll-behavior: smooth;
 }
 body:not(#left):not(#right) {
     --left: none;

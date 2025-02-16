@@ -437,8 +437,17 @@
                     if (msg.content === `<p class="deletedmessage">Ce message a été supprimé</p>`)
                         messageElement.innerHTML += msg.content;
                     else{
-                        let p = document.createElement("p");
-                        p.textContent = msg.content;
+                        const p = document.createElement("p");
+                        const lines = msg.content.split('\n');
+
+                        lines.forEach(line => {
+                            if (!line.trim() || line.trim() === "") return;
+
+                            const span = document.createElement('span');
+                            span.textContent = line;
+                            p.appendChild(span);
+                            p.appendChild(document.createElement('br'));
+                        });
                         messageElement.appendChild(p);
                     }
     
@@ -558,8 +567,10 @@
                             else return;
                             openChat(receiverMail);
                         }
-                    } else if (request.status === 401)
+                    } else if (request.status === 401){
+                        localStorage.removeItem("user");
                         location.href = "/";                
+                    }
                 } catch (error) {
                     console.error("Erreur lors de la suppression du message : " + error);
                 }
@@ -611,7 +622,7 @@
                     textMessage.value = "";
                 }
                 else if (request.status === 401){
-                    console.log("Utilisateur non connecté.");
+                    localStorage.removeItem("user");
                     window.location.href = "/";
                 }
     

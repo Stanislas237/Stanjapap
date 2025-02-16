@@ -316,7 +316,7 @@ exports.updateProfile = onRequest(async (req, res) => {
 
         // Upload de la photo si présente
         if (fileBase64 && fileType && fileName) {
-            const filePath = `profile_pictures/${email}`;
+            const filePath = `profile_pictures/${btoa(email)}`;
             const fileUpload = bucket.file(filePath);
             const fileBuffer = Buffer.from(fileBase64, "base64");
 
