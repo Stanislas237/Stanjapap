@@ -41,10 +41,10 @@ La version actuelle de l'application est hébergée à cette adresse : [stanjapa
 1. Ouvrez l'application et inscrivez-vous avec un nouvel utilisateur.
 2. Une fois connecté, commencez à envoyer et recevoir des messages en temps réel avec vos amis.
 3. Vous pouvez vous envoyer des messages à vous-même en suivant cette procédure :
-   - a) Ouvrir votre profil
-   - b) Récupérer le lien public vers votre profil
-   - c) Ouvrir ce lien
-   - d) Cliquer sur "lui écrire"
+   - Ouvrir votre profil
+   - Récupérer le lien public vers votre profil
+   - Ouvrir ce lien
+   - Cliquer sur "lui écrire"
 4. Pour contacter d'autres utilisateurs, c'est la même procédure, vous devez avoir le lien public de leur profil.
 
 # Contribuer
