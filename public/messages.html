@@ -479,11 +479,12 @@
                     const tagdata = event.target.closest(".tagdata");
                     if (tagdata){
                         const id = `#${tagdata.id.replace("t", "m")}`;
-                        location.href = id;
-    
-                        // Effet visuel
-                        messagesZone.querySelector(id)?.classList.toggle("ref");
-                        setTimeout(() => messagesZone.querySelector(id)?.classList.toggle("ref"), 300);
+                        const targetElement = document.querySelector(id);
+                        if (targetElement) {
+                            targetElement.scrollIntoView({ behavior: 'smooth' });
+                            targetElement.classList.toggle("ref");
+                            setTimeout(() => targetElement.classList.toggle("ref"), 300);
+                        }
                         return;
                     }                
                     const messageElement = event.target.closest(".message"); 
