@@ -114,8 +114,7 @@
                         });
                         const result = await newDocument.json();
                         if (newDocument.status === 200){
-                            alert(result.message);
-                            localStorage.setItem("token", result.token);
+                            alert("Votre compte a bien été créé. Cliquez sur le lien dans votre boîte mail et revenez vous connecter");
                         }
                         else alert(result.error);
                         hideSpinner();
