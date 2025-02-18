@@ -136,7 +136,7 @@ body#left{
             }
             .desc{
                 width: 100%;
-                font-style: italic;
+                font-style: normal;
                 font-size: medium;
                 overflow: hidden;
                 white-space: nowrap;

@@ -109,6 +109,7 @@
             const contactList = document.querySelector(".contacts");
             const tagMaster = document.querySelector(".tagMaster");
             const DAYS = [ "Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
+            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
             
             let messagesZone = document.querySelector(".messages");
             let contactActive = null;
@@ -239,15 +240,28 @@
                         c.style.setProperty("--unread", `"${conversations[contact].unreadCount}"`);
                     c.classList.add("contact");
                     
-                    c.innerHTML = `
-                        <span>
-                            <img src="${conversations[contact].ppUrl}" alt="${conversations[contact].pseudo}">
-                            <div class="preview">
-                                <span class="nom">${getUser()["aliases"] ? getUser()["aliases"][contact] ?? conversations[contact].pseudo : conversations[contact].pseudo }</span>
-                                <div class="desc">${conversations[contact]["lastMessage"]["content"] ?? ""}</div>
-                            </div>
-                        </span>
-                    `;
+                    const span1 = document.createElement("span");
+                    c.appendChild(span1);
+
+                    const img = document.createElement("img");
+                    img.src = conversations[contact].ppUrl;
+                    img.alt = conversations[contact].pseudo;
+                    span1.appendChild(img);
+
+                    const preview = document.createElement("div");
+                    preview.classList.add("preview");
+                    span1.appendChild(preview);
+
+                    const span2 = document.createElement("span");
+                    span2.classList.add("nom");
+                    span2.textContent = getUser()["aliases"] ? getUser()["aliases"][contact] ?? conversations[contact].pseudo : conversations[contact].pseudo;
+                    preview.appendChild(span2);
+
+                    const desc = document.createElement("div");
+                    desc.classList.add("desc");
+                    desc.textContent = conversations[contact]?.lastMessage?.content ?? "";
+                    preview.appendChild(desc);
+
                     c.addEventListener("click", () => {
                         if (contactActive)
                             contactActive.classList.remove("active");
@@ -496,6 +510,7 @@
             }
             
             function showOptions(message, msgData) {
+                if (!message.querySelector("span")) return;
                 const id = message.id.replace("m-id-", "");
     
                 const options = document.createElement("div");
@@ -537,7 +552,7 @@
                 if (msgData.senderMail === getUser().email)
                     tagMaster.querySelector(".tagsender").textContent = "Vous";
                 else
-                    tagMaster.querySelector(".tagsender").textContent = getUser()["aliases"] ? getUser()["aliases"][msgData.senderMail] ?? conversations[msgData.senderMail].pseudo : conversations[msgData.senderMail].pseudo;
+                    tagMaster.querySelector(".tagsender").textContent = getUser()["aliases"] ? getUser()["aliases"][msgData.senderMail] ?? getConv()[msgData.senderMail].pseudo : getConv()[msgData.senderMail].pseudo;
                 tagMaster.querySelector(".tagmessage").textContent = msgData.content;
             }
     
@@ -634,17 +649,19 @@
                 sendingMessage = false;
             }
             document.querySelector(".chat-input button").addEventListener("click", sendMessage);
-            textMessage.addEventListener('keydown', function(event) {
-                if (event.key === 'Enter') {
-                    event.preventDefault();
-                    if (event.shiftKey) {
-                        const cursorPosition = textMessage.selectionStart;
-                        textMessage.value = textMessage.value.substring(0, cursorPosition) + '\n' + textMessage.value.substring(cursorPosition);
-                        textMessage.selectionStart = textMessage.selectionEnd = cursorPosition + 1;
-                    } else
-                        sendMessage();
-                }
-            });
+            if (!isMobile){
+                textMessage.addEventListener('keydown', function(event) {
+                    if (event.key === 'Enter') {
+                        event.preventDefault();
+                        if (event.shiftKey) {
+                            const cursorPosition = textMessage.selectionStart;
+                            textMessage.value = textMessage.value.substring(0, cursorPosition) + '\n' + textMessage.value.substring(cursorPosition);
+                            textMessage.selectionStart = textMessage.selectionEnd = cursorPosition + 1;
+                        } else
+                            sendMessage();
+                    }
+                });
+            }
         
             function filterConversations() {
                 const text = searchText.value.trim().toLowerCase();
