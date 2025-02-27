@@ -53,7 +53,8 @@ button {
     cursor: pointer;
 }
 button:hover {
-    background-color: #365bb5;
+    background-color: #2b3653;
+    color: #f3f3f3;
 }
 #spinner {
     border: 16px solid #f3f3f3;
