@@ -166,7 +166,8 @@ exports.getFriends = onRequest(async (req, res) => {
             const otherUser = msg.senderMail === email ? msg.receiverMail : msg.senderMail;
             if (!conversations[otherUser]) {
                 const user = await db.collection("users").doc(otherUser).get();
-                conversations[otherUser] = { messages: [], lastMessage: null, unreadCount: 0, ppUrl: user.data().ppUrl, pseudo: user.data().pseudo };
+                const userData = user.data();
+                conversations[otherUser] = { messages: [], lastMessage: null, unreadCount: 0, ppUrl: userData.ppUrl, pseudo: userData.pseudo };
             }
             if (!alreadyExists(msg, conversations[otherUser].messages)){
                 conversations[otherUser].messages.push(msg);
@@ -281,12 +282,13 @@ exports.getProfile = onRequest(async (req, res) => {
         if (!user.exists)
             return res.status(404).json({ "error": "User doesn't exist" });
 
+        const userData = user.data();
         const profile = {
-            "ppUrl": user.data().ppUrl,
-            "pseudo": user.data().pseudo,
-            "actu": user.data().actu
+            "ppUrl": userData.ppUrl,
+            "pseudo": userData.pseudo,
+            "actu": userData.actu
         };
-        if (user.data().showEmail)
+        if (userData.showEmail)
             profile["email"] = email;
         
         return res.status(200).json({ "profile": profile });
