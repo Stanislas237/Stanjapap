@@ -40,6 +40,8 @@
     </div>
     
     <script type="module">
+        import { getProfile, save_Alias } from "/js/App.js";
+
         let params = new URLSearchParams(location.search);
         let encodedUserId = params.get("u");
         let userId = null;
@@ -47,20 +49,15 @@
         if (!encodedUserId)
             location.href = "404.html";
 
-        const request = await fetch("https://getProfile-b2lv2k7uwq-uc.a.run.app", {
-            method: "POST",
-            headers: {  "Content-Type": "application/json" },
-            body: JSON.stringify({ "email": atob(encodedUserId) })
-        });
-        
+        const request = await getProfile(atob(encodedUserId));        
         if (request.status === 200){
-            const profile = (await request.json()).profile;
+            const profile = request.profile;
 
             document.title = "Profil de " + profile.pseudo + " - Stanjapap";
             document.querySelector("#pp").src = profile.ppUrl;
             document.querySelector("#pseudo").textContent = profile.pseudo;
             document.querySelector("#actu").textContent = profile.actu;
-            document.querySelector("#email").textContent = profile.email ?? "Cet utilisateur a caché son email";
+            document.querySelector("#email").textContent = profile.email || "Cet utilisateur a caché son email";
             document.querySelector(".message-btn").addEventListener("click", () => {
                 if (!localStorage.hasOwnProperty("user"))
                     location.href = "/";
@@ -88,23 +85,14 @@
 
             let alias = document.querySelector("#aliasInput");
             if (alias.value.trim()) {
-
                 try {                    
-                    const request = await fetch("https://saveAlias-b2lv2k7uwq-uc.a.run.app", {
-                        method: "POST",
-                        headers: { 
-                            "Content-Type": "application/json",
-                            "Authorization": `Bearer ${getUser().token}`
-                        },
-                        body: JSON.stringify({ "email": getUser().email, "contact": atob(encodedUserId), "alias": alias.value.trim() })
-                    });
-                    
+                    const request = await save_Alias(getUser().email, atob(encodedUserId), alias.value.trim(), getUser().token);
                     if (request.status === 401){
                         localStorage.removeItem("user");
                         location.href = "/";
                     }
                     else if (request.status === 200){
-                        const aliases = (await request.json()).aliases;
+                        const aliases = request.aliases;
                         const user = getUser();
                         user.aliases = aliases;
                         localStorage.setItem("user", JSON.stringify(user));

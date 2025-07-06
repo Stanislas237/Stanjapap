@@ -119,23 +119,15 @@ export const getFriends = async (email, token) => {
     } catch { return { status: 500 }; }
 }
 
-export const sendMessage = async (senderMail, receiverMail, content, tag, token) => {
+export const send_Message = async (senderMail, receiverMail, content, tag, token) => {
     if (!await checkAuth(token, email))
         return { status: 401 };
     
-    const timestamp = now();
-    
-    return await addNewDoc("messages", {
-        "senderMail": senderMail,
-        "receiverMail": receiverMail,
-        "content": content,
-        "tag": tag ?? "",
-        "read": false,
-        "timestamp": timestamp
-    });    
+    const message = { "senderMail": senderMail, "receiverMail": receiverMail, "content": content, "tag": tag ?? "", "read": false, "timestamp": now() };
+    return addNewDoc("messages", message).then(() => ({ status: 200, message })).catch(() => ({ status: 500 }));
 }
 
-export const saveAlias = async (email, contact, alias, token) => {
+export const save_Alias = async (email, contact, alias, token) => {
     if (!await checkAuth(token, email))
         return { status: 401 };
     
@@ -176,13 +168,11 @@ export const updateProfile = async (email, pseudo, actu, showEmail, fileBase64, 
     
     const updateData = { pseudo, actu, showEmail: showEmail || false };
     
-    if (fileBase64)
-        updateData.ppUrl = `data:image/jpeg;base64,${fileBase64}`;
-    
-    return await setOneDoc("users", email, updateData);
+    if (fileBase64) updateData.ppUrl = fileBase64;    
+    return setOneDoc("users", email, updateData).then(() => ({ status: 200, updateData })).catch(() => ({ status: 500 }));
 };
 
-export const deleteMessage = async (email, id, token) => {
+export const delete_Message = async (email, id, token) => {
     if (!await checkAuth(token, email))
         return { status: 401 };
     
@@ -197,8 +187,10 @@ export const deleteMessage = async (email, id, token) => {
         const user = await getOneDoc("users", email);
         const deletedmessages = user.deletedmessages || [];
         deletedmessages.push(id);
-        return await setOneDoc("users", email, { deletedmessages });
+        
+        return setOneDoc("users", email, { deletedmessages }).then(() => ({ status: 200, deletedmessages })).catch(() => ({ status: 500 }));
     }
     else
-        return await setOneDoc("messages", id, { "content": `<p class="deletedmessage">Ce message a été supprimé</p>`, "tag": "" });    
+        return setOneDoc("messages", id, { "content": `<p class="deletedmessage">Ce message a été supprimé</p>`, "tag": "" })
+            .then(data => ({ status: 200, content: data.content })).catch(() => ({ status: 500 }));
 }

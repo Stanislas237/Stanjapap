@@ -64,7 +64,7 @@
         });
     </script>
     <script type="module">
-        import { getPrimaryAuth, getFriends } from "/js/App.js";
+        import { getPrimaryAuth, getFriends, delete_Message, send_Message } from "/js/App.js";
 
         if (!localStorage.hasOwnProperty("user"))
             location.href = "/";
@@ -110,16 +110,16 @@
                             return timeA - timeB;
                         });
                         
-                        const length = response.conversations[user].messages.length;
+                        const length = request.conversations[user].messages.length;
                         if (length > 0){
-                            const lastMessage = response.conversations[user].messages[length - 1];
-                            response.conversations[user].lastMessage = { 
+                            const lastMessage = request.conversations[user].messages[length - 1];
+                            request.conversations[user].lastMessage = { 
                                 "seconds": lastMessage.timestamp.seconds ?? lastMessage.timestamp._seconds,
                                 "content": lastMessage.content
                             }
                         }
                     }
-                    localStorage.setItem("conversations", JSON.stringify(response.conversations));
+                    localStorage.setItem("conversations", JSON.stringify(request.conversations));
                     renderContactList();
                     listenForNewMessages();
                 }
@@ -533,31 +533,24 @@
             async function deleteMessage(msgId, msgData) {
                 closeTag();
                 try {
-                    const request = await fetch("https://deleteMessage-b2lv2k7uwq-uc.a.run.app", {
-                        "method": "POST",
-                        "headers": {
-                            "Authorization": `Bearer ${getUser().token}`,
-                            "Content-Type": "application/json"
-                        },
-                        "body": JSON.stringify({ "email": getUser().email, "id": msgData.id })
-                    });
+                    const request = await delete_Message(getUser().email, msgData.id, getUser().token);
+
                     if (request.status === 200){
-                        const result = await request.json();
                         const receiverMail = chatContainer.getAttribute("data-active");
     
                         if (receiverMail && receiverMail !== "none") {
-                            if (result.content){
+                            if (request.content){
                                 const conversations = getConv();
-                                conversations[receiverMail].messages[msgId].content = result.content;
+                                conversations[receiverMail].messages[msgId].content = request.content;
                                 conversations[receiverMail].messages[msgId].tag = "";
                                 localStorage.setItem("conversations", JSON.stringify(conversations));
-                            } else if (result.deletedmessages){
+                                openChat(receiverMail);
+                            } else if (request.deletedmessages){
                                 const user = getUser();
-                                user.deletedmessages = result.deletedmessages;
+                                user.deletedmessages = request.deletedmessages;
                                 localStorage.setItem("user", JSON.stringify(user));
+                                openChat(receiverMail);
                             }
-                            else return;
-                            openChat(receiverMail);
                         }
                     } else if (request.status === 401){
                         localStorage.removeItem("user");
@@ -590,16 +583,10 @@
                     return;
                 }
     
-                const request = await fetch("https://sendmessage-b2lv2k7uwq-uc.a.run.app", {
-                    "method": "POST",
-                    "headers": {
-                        "Content-Type": "application/json",
-                        "Authorization": `Bearer ${getUser().token}`
-                    },
-                    "body": JSON.stringify({ "senderMail": getUser().email, "receiverMail": receiverMail, "content": messageToSend, "tag": tag === "none" ? "" : tag })
-                });
+                const request = await send_Message(getUser().email, receiverMail, messageToSend, tag === "none" ? "" : tag, getUser().token);
+                
                 if (request.status === 200){
-                    const message = (await request.json()).message;
+                    const message = request.message;
     
                     let conversations = getConv() ?? {};                        
                     if (!conversations[receiverMail]) {
