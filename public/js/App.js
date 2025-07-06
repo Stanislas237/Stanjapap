@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, doc, getDoc, setDoc, query, where, getDocs, addDoc, Timestamp, collection, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, query, where, getDocs, addDoc, Timestamp, collection } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { browserLocalPersistence, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendEmailVerification, onAuthStateChanged, getAuth } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 const firebaseConfig = {
@@ -25,22 +25,14 @@ export const SignUp = async (email, password) => createUserWithEmailAndPassword(
     .then(async (userCredential) => sendEmailVerification(userCredential.user).then(() => 1).catch(() => 2))
     .catch(() => 3);
 
-export const getOneDoc = (collectionName, docId) => getDoc(doc(db, collectionName, docId)).then(doc => doc.exists() ? { id: doc.id, ...doc.data() } : null).catch(() => null);
-
 
 // Setters
 export const addNewDoc = (collectionName, data) => addDoc(collection(db, collectionName), data).then(doc => ({ id: doc.id, ...data })).catch(() => null);
 
 export const setOneDoc = (collectionName, docId, data) => setDoc(doc(db, collectionName, docId), data, { merge: true }).then(() => data).catch(() => null);
 
-export const incrementOneDocValue = async (collectionName, docId, field, value) => await setDoc(doc(db, collectionName, docId), { [field]: increment(value) }, { merge: true });
-
-
 // Getters
-export const getAllDocs = async (collectionName) => {
-    const querySnapshot = await getDocs(collection(db, collectionName));
-    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-};
+export const getOneDoc = (collectionName, docId) => getDoc(doc(db, collectionName, docId)).then(doc => doc.exists() ? { id: doc.id, ...doc.data() } : null).catch(() => null);
 
 const documentsMatch = (collectionName, criteria) => {
   const constraints = Object.entries(criteria).map(([field, value]) => where(field, "==", value));
@@ -145,7 +137,6 @@ export const save_Alias = async (email, contact, alias, token) => {
         return { status: 500 };
 }
 
-
 export const getProfile = async (email) =>{
     const user = await getOneDoc("users", email);
     if (!user)
@@ -193,4 +184,4 @@ export const delete_Message = async (email, id, token) => {
     else
         return setOneDoc("messages", id, { "content": `<p class="deletedmessage">Ce message a été supprimé</p>`, "tag": "" })
             .then(data => ({ status: 200, content: data.content })).catch(() => ({ status: 500 }));
-}
+};

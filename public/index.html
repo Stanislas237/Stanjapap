@@ -47,8 +47,9 @@
             if (localStorage.hasOwnProperty("user"))
                 location.href = "messages.html";
         </script>
+        <script type="module" src="js/App.js"></script>
         <script type="module">
-            import { signIn, signUp, setOneDoc, getOneDoc, now, generateToken } from "/js/App.js";
+            import { SignIn, SignUp, setOneDoc, getOneDoc, now, generateToken } from "/js/App.js";
     
             const register = document.querySelector("form.register");
             const login = document.querySelector("form.login");
@@ -67,10 +68,10 @@
                 e.preventDefault();    
                 showSpinner();
     
-                const email = form.querySelector("input[type='email']").value;
-                const passwords = form.querySelectorAll("input[type='password']");
-                const name = form.querySelector("#name").value.trim();
-                const pseudo = form.querySelector("#pseudo").value;
+                const email = register.querySelector("input[type='email']").value;
+                const passwords = register.querySelectorAll("input[type='password']");
+                const name = register.querySelector("#name").value.trim();
+                const pseudo = register.querySelector("#pseudo").value;
 
                 if (passwords[0].value !== passwords[1].value) {
                     alert("Les mots de passe ne correspondent pas !");
@@ -78,7 +79,7 @@
                     return;
                 }
 
-                signUp(email, passwords[0].value).then(result => {
+                SignUp(email, passwords[0].value).then(result => {
                     switch (result) {
                         case 1:
                             setOneDoc("users", email, { actu: "Disponible", aliases: {}, registerDate: now(), "name": name, "pseudo": pseudo, "password": passwords[0], ppUrl: "https://as2.ftcdn.net/v2/jpg/01/99/45/45/1000_F_199454533_GIBKQvbUBlu0hl5xhn64pJOHp1nn5W2C.jpg" })
@@ -100,10 +101,10 @@
                 e.preventDefault();
                 showSpinner();
 
-                const email = form.querySelector("input[type='email']").value;
-                const password = form.querySelector("input[type='password']").value;
+                const email = login.querySelector("input[type='email']").value;
+                const password = login.querySelector("input[type='password']").value;
             
-                signIn(email, password).then(isUserSignedIn => {
+                SignIn(email, password).then(isUserSignedIn => {
                     if (!isUserSignedIn)
                         alert("En attente de vérification...");
                     else{
@@ -111,6 +112,7 @@
                         .then(() => getOneDoc("users", email)
                             .then(doc => {
                                 if (doc) {
+                                    doc.email = email;
                                     localStorage.setItem("user", JSON.stringify(doc));
                                     location.href = "messages.html";
                                 }

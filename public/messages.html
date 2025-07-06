@@ -100,7 +100,8 @@
             let deletedMessagesListener = null;
     
             if (!write_to){
-                const request = await getFriends(getUser().email, getUser().token);
+                const u = getUser();
+                const request = await getFriends(u.email, u.token);
                 
                 if (request.status === 200){
                     for (const user in request.conversations) {
