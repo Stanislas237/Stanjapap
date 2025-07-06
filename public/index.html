@@ -48,22 +48,10 @@
                 location.href = "messages.html";
         </script>
         <script type="module">
-            import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-            import { getAuth, browserLocalPersistence, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendEmailVerification } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-
-            const firebaseConfig = {
-                apiKey: "AIzaSyDwRreHnfABpGF2x6tN4wHe6VZUE_nRun4",
-                authDomain: "stanjapap.firebaseapp.com",
-                databaseURL: "https://stanjapap-default-rtdb.europe-west1.firebasedatabase.app",
-                projectId: "stanjapap",
-                storageBucket: "stanjapap.firebasestorage.app",
-                appId: "1:143091903095:web:bb74bfa8ca7d41120a7472"
-            };
-               
-            const app = initializeApp(firebaseConfig);
-            const auth = getAuth(app);
+            import { signIn, signUp, setOneDoc, getOneDoc, now, generateToken } from "/js/App.js";
     
-            const forms = document.querySelectorAll("form");
+            const register = document.querySelector("form.register");
+            const login = document.querySelector("form.login");
     
             function showSpinner() {
                 document.querySelectorAll(".spinner").forEach(spinner => spinner.style.display = "flex");
@@ -75,96 +63,70 @@
                 document.querySelectorAll("button[type='submit']").forEach(b => b.style.display = "block");
             }
     
-            forms.forEach(form => form.addEventListener("submit", (e) => {
-                e.preventDefault();
-    
+            register.addEventListener("submit", (e) => {
+                e.preventDefault();    
                 showSpinner();
     
-                if (form.classList.contains("register")) {
-                    const email = form.querySelector("input[type='email']").value;
-                    const passwords = form.querySelectorAll("input[type='password']");
-                    const name = form.querySelector("#name").value.trim();
-                    const pseudo = form.querySelector("#pseudo").value;
+                const email = form.querySelector("input[type='email']").value;
+                const passwords = form.querySelectorAll("input[type='password']");
+                const name = form.querySelector("#name").value.trim();
+                const pseudo = form.querySelector("#pseudo").value;
 
-                    if (passwords[0].value !== passwords[1].value) {
-                        alert("Les mots de passe ne correspondent pas !");
-                        hideSpinner();
-                        return;
-                    }
-    
-                    createUserWithEmailAndPassword(auth, email, passwords[0].value)
-                    .then(async (userCredential) => {
-                        console.log("Utilisateur créé");
-                        sendEmailVerification(userCredential.user)
-                        .then(() => {
-                            console.log("Email de vérification envoyé !");
-                        })
-                        .catch((error) => {
-                            console.error("Erreur lors de l’envoi de l’email : ", error);
-                        });
-                        const newDocument = await fetch("https://adduser-b2lv2k7uwq-uc.a.run.app", {
-                            "method" : "POST",
-                            "headers" : { "Content-Type" : "application/json"},
-                            "body" : JSON.stringify({
-                                "email":email,
-                                "name":name,
-                                "pseudo":pseudo,
-                                "password":passwords[0]
-                            })
-                        });
-                        const result = await newDocument.json();
-                        if (newDocument.status === 200){
-                            alert("Votre compte a bien été créé. Cliquez sur le lien dans votre boîte mail et revenez vous connecter");
-                        }
-                        else alert(result.error);
-                        hideSpinner();
-                    })
-                    .catch((error) => {
-                        console.error("Erreur lors de la création :", error.message);
-                        hideSpinner();
-                    });
+                if (passwords[0].value !== passwords[1].value) {
+                    alert("Les mots de passe ne correspondent pas !");
+                    hideSpinner();
+                    return;
                 }
-                else if (form.classList.contains("login")) {
-                    const email = form.querySelector("input[type='email']").value;
-                    const password = form.querySelector("input[type='password']").value;
-                
-                    signInWithEmailAndPassword(auth, email, password)
-                        .then(async (userCredential) => {
-                            if (!userCredential.user.emailVerified){
-                                if (confirm("En attente de vérification. Renvoyer l'e-mail de vérification ?"))
-                                    sendEmailVerification(userCredential.user)
-                                    .then(() => {
-                                        console.log("Email de vérification envoyé !");
-                                    })
-                                    .catch((error) => {
-                                        console.error("Erreur lors de l’envoi de l’email : ", error);
-                                    });
-                            }
-                            else{
-                                const user = await fetch("https://getuser-b2lv2k7uwq-uc.a.run.app", {
-                                    "method": "POST",
-                                    "headers": { "Content-Type" : "application/json" },
-                                    "body": JSON.stringify({ "email": email })
-                                });
-                                const userData = await user.json();
-                                if (user.status === 200){
-                                    const dataToSave = { ...userData.userData, "email": email};
-                                    localStorage.setItem("user", JSON.stringify(dataToSave));
+
+                signUp(email, passwords[0].value).then(result => {
+                    switch (result) {
+                        case 1:
+                            setOneDoc("users", email, { actu: "Disponible", aliases: {}, registerDate: now(), "name": name, "pseudo": pseudo, "password": passwords[0], ppUrl: "https://as2.ftcdn.net/v2/jpg/01/99/45/45/1000_F_199454533_GIBKQvbUBlu0hl5xhn64pJOHp1nn5W2C.jpg" })
+                            .then(() => alert("Veuillez cliquer sur le lien envoyé à votre e-mail"))
+                            .catch(() => alert("Une erreur est survenue. Veuillez contacter le support"));
+                            break;
+                        case 2:
+                            alert("Nous n'avons pas pu vous envoyer d'email de vérification. Veuillez contacter le support.")
+                            break;                    
+                        default:
+                            alert("Une erreur est survenue. Veuillez réessayer");
+                            break;
+                    }
+                }).catch(() => alert("Une erreur est survenue. Veuillez réessayer"));
+                hideSpinner();
+            });
+
+            login.addEventListener("submit", (e) => {
+                e.preventDefault();
+                showSpinner();
+
+                const email = form.querySelector("input[type='email']").value;
+                const password = form.querySelector("input[type='password']").value;
+            
+                signIn(email, password).then(isUserSignedIn => {
+                    if (!isUserSignedIn)
+                        alert("En attente de vérification...");
+                    else{
+                        setOneDoc("users", email, { token: generateToken() })
+                        .then(() => getOneDoc("users", email)
+                            .then(doc => {
+                                if (doc) {
+                                    localStorage.setItem("user", JSON.stringify(doc));
                                     location.href = "messages.html";
                                 }
                                 else
-                                    alert(userData.error);
-                            }
-                            hideSpinner();
-                        })
-                        .catch((error) => {
-                            console.error("Erreur de connexion :", error.message);
-                            hideSpinner();
-                            alert("Échec de la connexion");
-                        }
-                    );
-                }
-            }));    
+                                    alert("Impossible de récupérer vos informations. Veuillez réessayer");
+                            })
+                            .catch(() => alert("Impossible de récupérer vos informations. Veuillez réessayer")))
+                        .catch(() => alert("Impossible de mettre à jour vos informations. Veuillez réessayer"));
+                    }
+                    hideSpinner();
+                })
+                .catch(() => {
+                    hideSpinner();
+                    alert("Échec de la connexion");
+                });
+            });
         </script>    
     </body>
 </html>

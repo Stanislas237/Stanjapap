@@ -64,9 +64,7 @@
         });
     </script>
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, query, where, getDocs, updateDoc, orderBy, onSnapshot, Timestamp, startAt } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getPrimaryAuth, getFriends } from "/js/App.js";
 
         if (!localStorage.hasOwnProperty("user"))
             location.href = "/";
@@ -84,23 +82,8 @@
             document.title = getUser().pseudo + " - StanJapap";
     
             
-            const firebaseConfig = {
-                apiKey: "AIzaSyDwRreHnfABpGF2x6tN4wHe6VZUE_nRun4",
-                authDomain: "stanjapap.firebaseapp.com",
-                databaseURL: "https://stanjapap-default-rtdb.europe-west1.firebasedatabase.app",
-                projectId: "stanjapap",
-                storageBucket: "stanjapap.firebasestorage.app",
-                appId: "1:143091903095:web:bb74bfa8ca7d41120a7472"
-            };
-                
-            const app = initializeApp(firebaseConfig);
-            const db = getFirestore(app);
-            const auth = getAuth(app);
-            onAuthStateChanged(auth, (user) => {
-                if (!user) {
-                    console.log("Utilisateur non connecté.");
-                    window.location.href = "/";
-                }
+            getPrimaryAuth().then(user => {
+                if (!user) window.location.href = "/";
             });
     
             const chatContainer = document.querySelector(".chat-container");
@@ -117,20 +100,11 @@
             let deletedMessagesListener = null;
     
             if (!write_to){
-                const request = await fetch("https://getfriends-b2lv2k7uwq-uc.a.run.app", {
-                    method: "POST",
-                    headers: { 
-                        "Content-Type": "application/json",
-                        "Authorization": `Bearer ${getUser().token}`
-                    },
-                    body: JSON.stringify({ "email": getUser().email })
-                });
+                const request = await getFriends(getUser().email, getUser().token);
                 
                 if (request.status === 200){
-                    const response = await request.json();
-    
-                    for (const user in response.conversations) {
-                        response.conversations[user].messages =  response.conversations[user].messages.sort((a, b) => {
+                    for (const user in request.conversations) {
+                        request.conversations[user].messages =  request.conversations[user].messages.sort((a, b) => {
                             const timeA = (a.timestamp?.seconds ?? a.timestamp?._seconds) * 1000 + (a.timestamp?.nanoseconds ?? a.timestamp?._nanoseconds) / 1e6;
                             const timeB = (b.timestamp?.seconds ?? b.timestamp?._seconds) * 1000 + (b.timestamp?.nanoseconds ?? b.timestamp?._nanoseconds) / 1e6;
                             return timeA - timeB;
