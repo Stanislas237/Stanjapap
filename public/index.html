@@ -37,20 +37,16 @@
         </div>
 
         <script>
+            if (localStorage.hasOwnProperty("user"))
+                location.href = "messages.html";
+
             function switchTab(tab) {
                 document.querySelectorAll('form').forEach(f => f.classList.remove('active'));
                 document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));                
                 document.querySelector(`.${tab}`).classList.add('active');
                 document.querySelector(`#${tab}-tab`).classList.add('active');
             }
-
-            if (localStorage.hasOwnProperty("user"))
-                location.href = "messages.html";
-        </script>
-        <script type="module" src="js/App.js"></script>
-        <script type="module">
-            import { SignIn, SignUp, setOneDoc, getOneDoc, now, generateToken } from "/js/App.js";
-    
+            
             const register = document.querySelector("form.register");
             const login = document.querySelector("form.login");
     
@@ -79,21 +75,30 @@
                     return;
                 }
 
-                SignUp(email, passwords[0].value).then(result => {
-                    switch (result) {
-                        case 1:
-                            setOneDoc("users", email, { actu: "Disponible", aliases: {}, registerDate: now(), "name": name, "pseudo": pseudo, "password": passwords[0], ppUrl: "https://as2.ftcdn.net/v2/jpg/01/99/45/45/1000_F_199454533_GIBKQvbUBlu0hl5xhn64pJOHp1nn5W2C.jpg" })
-                            .then(() => alert("Veuillez cliquer sur le lien envoyé à votre e-mail"))
-                            .catch(() => alert("Une erreur est survenue. Veuillez contacter le support"));
-                            break;
-                        case 2:
-                            alert("Nous n'avons pas pu vous envoyer d'email de vérification. Veuillez contacter le support.")
-                            break;                    
-                        default:
-                            alert("Une erreur est survenue. Veuillez réessayer");
-                            break;
-                    }
-                }).catch(() => alert("Une erreur est survenue. Veuillez réessayer"));
+                fetch("https://stanjapap-backend.onrender.com/signup", { method: "POST", headers: { "Content-Type" : "application/json"}, body: JSON.stringify({ email, password: passwords[0] }) })
+                .then(async (res) =>{
+                    const signupResult = await res.json();
+                    if (res.status !== 200)
+                        alert("Erreur lors de l'inscription : " + signupResult.error);
+                    else
+                        fetch("https://stanjapap-backend.onrender.com/verify-email/" + signupResult.idToken, { method: "GET" })
+                        .then(async (res) =>{
+                            if (res.status !== 200){
+                                const verifyResult = await res.json();
+                                alert("Erreur lors de l'envoi de l'email de vérification : " + verifyResult.error);                                
+                            }
+                            else
+                                fetch("https://stanjapap-backend.onrender.com/add-user", { method: "POST", headers: { "Content-Type" : "application/json"}, body: JSON.stringify({ email, name, pseudo, password: passwords[0] }) })
+                                .then(async (res) =>{
+                                    const adduserResult = await res.json();
+                                    if (res.status !== 200)
+                                        alert("Une erreur inattendue est survenue : " + adduserResult.error);
+                                    else
+                                        alert(adduserResult.message);
+                                });
+                        });
+
+                }).catch(e => alert("Une erreur inattendue est survenue. Veuillez réessayer " + e));
                 hideSpinner();
             });
 
@@ -103,31 +108,34 @@
 
                 const email = login.querySelector("input[type='email']").value;
                 const password = login.querySelector("input[type='password']").value;
-            
-                SignIn(email, password).then(isUserSignedIn => {
-                    if (!isUserSignedIn)
-                        alert("En attente de vérification...");
-                    else{
-                        setOneDoc("users", email, { token: generateToken() })
-                        .then(() => getOneDoc("users", email)
-                            .then(doc => {
-                                if (doc) {
-                                    doc.email = email;
-                                    localStorage.setItem("user", JSON.stringify(doc));
-                                    location.href = "messages.html";
-                                }
-                                else
-                                    alert("Impossible de récupérer vos informations. Veuillez réessayer");
-                            })
-                            .catch(() => alert("Impossible de récupérer vos informations. Veuillez réessayer")))
-                        .catch(() => alert("Impossible de mettre à jour vos informations. Veuillez réessayer"));
-                    }
-                    hideSpinner();
-                })
-                .catch(() => {
-                    hideSpinner();
-                    alert("Échec de la connexion");
-                });
+
+                fetch("https://stanjapap-backend.onrender.com/login", { method: "POST", headers: { "Content-Type" : "application/json"}, body: JSON.stringify({ email, password }) })
+                .then(async (res) =>{
+                    const signinResult = await res.json();
+
+                    if (res.status !== 200)
+                        alert("Erreur de connexion : " + signinResult.error);
+                    else if (signinResult.verified)
+                        fetch("https://stanjapap-backend.onrender.com/users/" + email, { method: "GET" })
+                        .then(async (res) =>{
+                            const getuserResult = await res.json();
+                            if (res.status !== 200)
+                                alert("Impossible de récupérer vos donnnées. Veuillez réessayer : " + getuserResult.error);
+                            else{
+                                localStorage.setItem("user", JSON.stringify({ ...getuserResult.userData, "email": email}));
+                                location.href = "messages.html";
+                            }
+                        });
+                    else if (confirm("Ce compte est en attente de vérification. Renvoyer l'e-mail de vérification ?"))
+                        fetch("https://stanjapap-backend.onrender.com/verify-email/" + signinResult.idToken, { method: "GET" })
+                        .then(async (res) =>{
+                            if (res.status !== 200){
+                                const verifyResult = await res.json();
+                                alert("Erreur lors de l'envoi de l'email de vérification : " + verifyResult.error);                                
+                            }
+                        });
+                }).catch(e => alert("Une erreur inattendue est survenue. Veuillez réessayer " + e));
+                hideSpinner();
             });
         </script>    
     </body>

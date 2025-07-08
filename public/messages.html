@@ -64,7 +64,9 @@
         });
     </script>
     <script type="module">
-        import { getPrimaryAuth, getFriends, delete_Message, send_Message } from "/js/App.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, query, where, getDocs, updateDoc, orderBy, onSnapshot, Timestamp, startAt } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
         if (!localStorage.hasOwnProperty("user"))
             location.href = "/";
@@ -82,8 +84,23 @@
             document.title = getUser().pseudo + " - StanJapap";
     
             
-            getPrimaryAuth().then(user => {
-                if (!user) window.location.href = "/";
+            const firebaseConfig = {
+                apiKey: "AIzaSyDwRreHnfABpGF2x6tN4wHe6VZUE_nRun4",
+                authDomain: "stanjapap.firebaseapp.com",
+                databaseURL: "https://stanjapap-default-rtdb.europe-west1.firebasedatabase.app",
+                projectId: "stanjapap",
+                storageBucket: "stanjapap.firebasestorage.app",
+                appId: "1:143091903095:web:bb74bfa8ca7d41120a7472"
+            };
+                
+            const app = initializeApp(firebaseConfig);
+            const db = getFirestore(app);
+            const auth = getAuth(app);
+            onAuthStateChanged(auth, (user) => {
+                if (!user) {
+                    console.log("Utilisateur non connecté.");
+                    window.location.href = "/";
+                }
             });
     
             const chatContainer = document.querySelector(".chat-container");
@@ -100,27 +117,35 @@
             let deletedMessagesListener = null;
     
             if (!write_to){
-                const u = getUser();
-                const request = await getFriends(u.email, u.token);
+                const request = await fetch("https://getfriends-b2lv2k7uwq-uc.a.run.app", {
+                    method: "POST",
+                    headers: { 
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${getUser().token}`
+                    },
+                    body: JSON.stringify({ "email": getUser().email })
+                });
                 
                 if (request.status === 200){
-                    for (const user in request.conversations) {
-                        request.conversations[user].messages =  request.conversations[user].messages.sort((a, b) => {
+                    const response = await request.json();
+    
+                    for (const user in response.conversations) {
+                        response.conversations[user].messages =  response.conversations[user].messages.sort((a, b) => {
                             const timeA = (a.timestamp?.seconds ?? a.timestamp?._seconds) * 1000 + (a.timestamp?.nanoseconds ?? a.timestamp?._nanoseconds) / 1e6;
                             const timeB = (b.timestamp?.seconds ?? b.timestamp?._seconds) * 1000 + (b.timestamp?.nanoseconds ?? b.timestamp?._nanoseconds) / 1e6;
                             return timeA - timeB;
                         });
                         
-                        const length = request.conversations[user].messages.length;
+                        const length = response.conversations[user].messages.length;
                         if (length > 0){
-                            const lastMessage = request.conversations[user].messages[length - 1];
-                            request.conversations[user].lastMessage = { 
+                            const lastMessage = response.conversations[user].messages[length - 1];
+                            response.conversations[user].lastMessage = { 
                                 "seconds": lastMessage.timestamp.seconds ?? lastMessage.timestamp._seconds,
                                 "content": lastMessage.content
                             }
                         }
                     }
-                    localStorage.setItem("conversations", JSON.stringify(request.conversations));
+                    localStorage.setItem("conversations", JSON.stringify(response.conversations));
                     renderContactList();
                     listenForNewMessages();
                 }
@@ -534,24 +559,31 @@
             async function deleteMessage(msgId, msgData) {
                 closeTag();
                 try {
-                    const request = await delete_Message(getUser().email, msgData.id, getUser().token);
-
+                    const request = await fetch("https://deleteMessage-b2lv2k7uwq-uc.a.run.app", {
+                        "method": "POST",
+                        "headers": {
+                            "Authorization": `Bearer ${getUser().token}`,
+                            "Content-Type": "application/json"
+                        },
+                        "body": JSON.stringify({ "email": getUser().email, "id": msgData.id })
+                    });
                     if (request.status === 200){
+                        const result = await request.json();
                         const receiverMail = chatContainer.getAttribute("data-active");
     
                         if (receiverMail && receiverMail !== "none") {
-                            if (request.content){
+                            if (result.content){
                                 const conversations = getConv();
-                                conversations[receiverMail].messages[msgId].content = request.content;
+                                conversations[receiverMail].messages[msgId].content = result.content;
                                 conversations[receiverMail].messages[msgId].tag = "";
                                 localStorage.setItem("conversations", JSON.stringify(conversations));
-                                openChat(receiverMail);
-                            } else if (request.deletedmessages){
+                            } else if (result.deletedmessages){
                                 const user = getUser();
-                                user.deletedmessages = request.deletedmessages;
+                                user.deletedmessages = result.deletedmessages;
                                 localStorage.setItem("user", JSON.stringify(user));
-                                openChat(receiverMail);
                             }
+                            else return;
+                            openChat(receiverMail);
                         }
                     } else if (request.status === 401){
                         localStorage.removeItem("user");
@@ -584,10 +616,16 @@
                     return;
                 }
     
-                const request = await send_Message(getUser().email, receiverMail, messageToSend, tag === "none" ? "" : tag, getUser().token);
-                
+                const request = await fetch("https://sendmessage-b2lv2k7uwq-uc.a.run.app", {
+                    "method": "POST",
+                    "headers": {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${getUser().token}`
+                    },
+                    "body": JSON.stringify({ "senderMail": getUser().email, "receiverMail": receiverMail, "content": messageToSend, "tag": tag === "none" ? "" : tag })
+                });
                 if (request.status === 200){
-                    const message = request.message;
+                    const message = (await request.json()).message;
     
                     let conversations = getConv() ?? {};                        
                     if (!conversations[receiverMail]) {
